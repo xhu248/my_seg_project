@@ -1,6 +1,5 @@
 from utilities.file_and_folder_operations import subfiles
 import numpy as np
-from configs.Config_unet import get_config
 import torch
 import torch.nn.functional as F
 import os
