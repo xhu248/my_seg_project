@@ -28,9 +28,7 @@ from datasets.two_dim.NumpyDataLoader import NumpyDataSet
 from trixi.experiment.pytorchexperiment import PytorchExperiment
 
 from networks.RecursiveUNet import UNet
-from models.fcn8s import FCN8s
-from models.fcn32s import FCN32s
-from models.fcn8s import FCN8s
+
 from loss_functions.dice_loss import SoftDiceLoss
 
 from loss_functions.metrics import dice_pytorch
@@ -66,13 +64,13 @@ class FCNExperiment(PytorchExperiment):
 
         self.device = torch.device(self.config.device if torch.cuda.is_available() else 'cpu')    #
 
-        self.train_data_loader = NumpyDataSet(self.config.scaled_image_64_dir, target_size=64, batch_size=self.config.batch_size,
+        self.train_data_loader = NumpyDataSet(self.config.data_dir, target_size=512, batch_size=self.config.batch_size,
                                               keys=tr_keys, do_reshuffle=True)
-        self.val_data_loader = NumpyDataSet(self.config.scaled_image_64_dir, target_size=64, batch_size=self.config.batch_size,
+        self.val_data_loader = NumpyDataSet(self.config.data_dir, target_size=512, batch_size=self.config.batch_size,
                                             keys=val_keys, mode="val", do_reshuffle=True)
-        self.test_data_loader = NumpyDataSet(self.config.scaled_image_64_dir, target_size=64, batch_size=self.config.batch_size,
+        self.test_data_loader = NumpyDataSet(self.config.data_dir, target_size=512, batch_size=self.config.batch_size,
                                              keys=test_keys, mode="test", do_reshuffle=False)
-        self.model = UNet(num_classes=self.config.num_classes, num_downs=3)
+        self.model = UNet(num_classes=self.config.num_classes, num_downs=4)
 
         self.model.to(self.device)
 
