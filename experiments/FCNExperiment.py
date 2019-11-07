@@ -21,6 +21,7 @@ import pickle
 import numpy as np
 import torch
 import torch.optim as optim
+import torch.nn as nn
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 import torch.nn.functional as F
 
@@ -72,7 +73,13 @@ class FCNExperiment(PytorchExperiment):
                                              keys=test_keys, mode="test", do_reshuffle=False)
         self.model = UNet(num_classes=self.config.num_classes, num_downs=4)
 
+        if torch.cuda.device_count() > 1:
+            print("Let's use", torch.cuda.device_count(), "GPUs!")
+            # dim = 0 [30, xxx] -> [10, ...], [10, ...], [10, ...] on 3 GPUs
+            model = nn.DataParallel(self.model)
+
         self.model.to(self.device)
+
 
         # We use a combination of DICE-loss and CE-Loss in this example.
         # This proved good in the medical segmentation decathlon.

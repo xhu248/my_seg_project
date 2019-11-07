@@ -60,7 +60,7 @@ def training():
         print('The data has already been preprocessed. It will not be preprocessed again. Delete the folder to enforce it.')
 
     # create_splits(output_dir=c.split_dir, image_dir=c.scaled_image_32_dir)
-    exp = FCNExperiment(config=c, name='fcn_experiment', n_epochs=c.n_epochs,
+    exp = FCNExperiment(config=c, name='chd_experiment', n_epochs=c.n_epochs,
                         seed=42, append_rnd_to_name=c.append_rnd_string)   # visdomlogger_kwargs={"auto_start": c.start_visdom}
 
     exp.run()

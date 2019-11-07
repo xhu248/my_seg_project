@@ -33,7 +33,7 @@ def get_config():
         batch_size=8,
         patch_size=64,
         n_epochs=50,
-        learning_rate=0.0002,
+        learning_rate=0.0005,
         fold=0,  # The 'splits.pkl' may contain multiple folds. Here we choose which one we want to use.
 
         device="cuda",  # 'cuda' is the default CUDA device, you can use also 'cpu'. For more information, see https://pytorch.org/docs/stable/notes/cuda.html
