@@ -58,11 +58,11 @@ def get_config():
         data_test_dir=os.path.join(data_root_dir, 'CHD_segmentation_dataset/preprocessed'),  # This is where your test data is stored
 
         split_dir=os.path.join(data_root_dir, 'CHD_segmentation_dataset'),  # This is where the 'splits.pkl' file is located, that holds your splits.
-        scaled_image_16_dir=os.path.join(data_root_dir, 'CHD_segmentation_dataset/scaled_to_16'),
-        scaled_image_32_dir=os.path.join(data_root_dir, 'CHD_segmentation_dataset/scaled_to_32'),
-        scaled_image_64_dir=os.path.join(data_root_dir, 'CHD_segmentation_dataset/scaled_to_64'),
-        stage_1_dir=os.path.join(data_root_dir, 'CHD_segmentation_dataset/stage_1'),
-        stage_1_dir_32 = os.path.join(data_root_dir, 'CHD_segmentation_dataset/stage_1_32'),
+        # scaled_image_16_dir=os.path.join(data_root_dir, 'CHD_segmentation_dataset/scaled_to_16'),
+        # scaled_image_32_dir=os.path.join(data_root_dir, 'CHD_segmentation_dataset/scaled_to_32'),
+        # scaled_image_64_dir=os.path.join(data_root_dir, 'CHD_segmentation_dataset/scaled_to_64'),
+        # stage_1_dir=os.path.join(data_root_dir, 'CHD_segmentation_dataset/stage_1'),
+        # stage_1_dir_32 = os.path.join(data_root_dir, 'CHD_segmentation_dataset/stage_1_32'),
         # stage_1_dir = os.path.join(data_root_dir, 'CHD_segmentation_dataset/stage_1')
 
     )

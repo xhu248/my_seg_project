@@ -38,8 +38,9 @@ from datasets.chd_dataset.rearrange_dir import rearrange_dir
 
 def training():
 
+    print(torch.cuda.is_available())
+
     c = get_config()
-    c_addition = get_add_config()
 
     dataset_name = 'CHD_segmentation_dataset'
     # dataset_name = 'Task04_Hippocampus'
@@ -58,8 +59,6 @@ def training():
     else:
         print('The data has already been preprocessed. It will not be preprocessed again. Delete the folder to enforce it.')
 
-    preprocess_data(root_dir=os.path.join(c.data_root_dir, dataset_name))
-    downsampling_image(c.data_dir, output_dir=c_addition.scaled_image_32_dir)
     # create_splits(output_dir=c.split_dir, image_dir=c.scaled_image_32_dir)
     exp = FCNExperiment(config=c, name='fcn_experiment', n_epochs=c.n_epochs,
                         seed=42, append_rnd_to_name=c.append_rnd_string)   # visdomlogger_kwargs={"auto_start": c.start_visdom}
