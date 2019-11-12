@@ -50,14 +50,14 @@ def get_config():
 
         # Adapt to your own path, if needed.
         google_drive_id='1RzPB1_bqzQhlWvU-YGvZzhx2omcDh38C',
-        dataset_name='CHD_segmentation_dataset',
+        dataset_name='tapvc_dataset',
         base_dir=os.path.abspath('output_experiment'),  # Where to log the output of the experiment.
 
         data_root_dir=data_root_dir,  # The path where the downloaded dataset is stored.
-        data_dir=os.path.join(data_root_dir, 'CHD_segmentation_dataset/preprocessed'),  # This is where your training and validation data is stored
-        data_test_dir=os.path.join(data_root_dir, 'CHD_segmentation_dataset/preprocessed'),  # This is where your test data is stored
+        data_dir=os.path.join(data_root_dir, 'tapvc_dataset/preprocessed'),  # This is where your training and validation data is stored
+        data_test_dir=os.path.join(data_root_dir, 'tapvc_dataset/preprocessed'),  # This is where your test data is stored
 
-        split_dir=os.path.join(data_root_dir, 'CHD_segmentation_dataset'),  # This is where the 'splits.pkl' file is located, that holds your splits.
+        split_dir=os.path.join(data_root_dir, 'tapvc_dataset'),  # This is where the 'splits.pkl' file is located, that holds your splits.
         # scaled_image_16_dir=os.path.join(data_root_dir, 'CHD_segmentation_dataset/scaled_to_16'),
         # scaled_image_32_dir=os.path.join(data_root_dir, 'CHD_segmentation_dataset/scaled_to_32'),
         # scaled_image_64_dir=os.path.join(data_root_dir, 'CHD_segmentation_dataset/scaled_to_64'),

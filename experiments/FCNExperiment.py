@@ -55,13 +55,10 @@ class FCNExperiment(PytorchExperiment):
     """
 
     def setup(self):
-        pkl_dir = self.config.split_dir
-        with open(os.path.join(pkl_dir, "splits.pkl"), 'rb') as f:
-            splits = pickle.load(f)
 
-        tr_keys = splits[self.config.fold]['train']
-        val_keys = splits[self.config.fold]['val']
-        test_keys = splits[self.config.fold]['test']
+        tr_keys = os.listdir(self.config.data_dir)
+        val_keys = []
+        test_keys = os.listdir(self.config.data_dir)
 
         self.device = torch.device(self.config.device if torch.cuda.is_available() else 'cpu')    #
 
@@ -183,57 +180,41 @@ class FCNExperiment(PytorchExperiment):
 
         self.model.eval()
         data = None
-        dice_array = np.array([0])
 
         num_of_parameters = sum(p.numel() for p in self.model.parameters() if p.requires_grad)
         print("number of parameters:", num_of_parameters)
 
+        segmented_dir = os.path.join(self.config.split_dir, 'segmented')
+        if not os.path.exists(segmented_dir):
+            os.mkdir(segmented_dir)
+
         with torch.no_grad():
             for data_batch in self.test_data_loader:
                 data = data_batch['data'][0].float().to(self.device)
-                target = data_batch['seg'][0].long().to(self.device)
                 file_dir = data_batch['fnames']  # 8*tuple (a,)
 
-
                 pred = self.model(data)
-                pred_softmax = F.softmax(pred,
-                                         dim=1)  # We calculate a softmax, because our SoftDiceLoss expects that as an input. The CE-Loss does the softmax internally.
-                pred_image = torch.argmax(pred_softmax, dim=1)
-                dice_result = dice_pytorch(outputs=pred_image, labels=target, N_class =self.config.num_classes)
-                dice_loss = self.dice_loss(pred_softmax, target.squeeze())
-                ce_loss = self.ce_loss(pred, target.squeeze())
-                print('ce_loss:%.4f   dice:%s' % (ce_loss.data, dice_result.data))
-
-
-                data_image = data.data.cpu().numpy()
-                pred_image = pred_image.data.cpu().numpy()
-                target_image = target.data.cpu().numpy()
-
-                pred_softmax = pred_softmax.data.cpu().numpy()
-                dice_result = dice_result.data.cpu().numpy()
-
-                size = np.shape(dice_result)[0]
-                for i in range(size):
-                    dice_array = np.concatenate((dice_array, [dice_result[i]]))
+                # pred_softmax = F.softmax(pred, dim=1)  # We calculate a softmax, because our SoftDiceLoss expects that as an input. The CE-Loss does the softmax internally.
+                # pred_image = torch.argmax(pred_softmax, dim=1)
 
                 for k in range(self.config.batch_size):
-                    ##save the results
-                    pred = pred_softmax[k].reshape((3,64,64))
-                    filename = file_dir[k][0][-8:-4]
-                    output_dir = os.path.join(self.config.cross_vali_result_all_dir, 'pred_' + self.config.dataset_name + filename )
+                    # save the results
+                    # pred = pred_softmax[k].reshape((3,64,64))
+                    filename = file_dir[k][0]
+                    output_dir = os.path.join(segmented_dir, 'segmented_' + filename)
 
                     if os.path.exists(output_dir + '.npy'):
                         all_image = np.load(output_dir + '.npy')
-                        output = np.concatenate((data_image[k], target_image[k], pred), axis=0).reshape((1, 5, 64, 64))
+                        output = pred[k]
                         all_image = np.concatenate((all_image, output), axis=0)
                     else:
-                        all_image = np.concatenate((data_image[k], target_image[k], pred), axis=0).reshape((1, 5, 64, 64))
+                        all_image = pred[k]
 
+                    print(output_dir)
                     np.save(output_dir, all_image)
                 #    saveName = filenames[k]
 
-            dice_array = dice_array[dice_array != 0]
-            print("average dice:", np.average(dice_array))
+
             print('test_data loading finished')
 
         assert data is not None, 'data is None. Please check if your dataloader works properly'

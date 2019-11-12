@@ -35,12 +35,12 @@ def load_dataset(base_dir, pattern='*.npy', slice_offset=5, keys=None):
         i = 0
         for filename in sorted(fnmatch.filter(files, pattern)):
 
-            if keys is not None and filename[:-4] in keys:
+            if keys is not None and filename in keys:
                 npy_file = os.path.join(root, filename)
                 numpy_array = np.load(npy_file, mmap_mode="r+")  # change "r" to "r+"
 
-                fls.append(npy_file)
-                files_len.append(numpy_array.shape[0]) # changed from 0 to 1
+                fls.append(filename)
+                files_len.append(numpy_array.shape[2]) # changed from 0 to 1
 
                 slices_ax.extend([(i, j) for j in range(slice_offset, files_len[-1] - slice_offset)])
 
@@ -54,7 +54,7 @@ class NumpyDataSet(object):
     TODO
     """
     def __init__(self, base_dir, mode="train", batch_size=16, num_batches=10000000, seed=None, num_processes=8, num_cached_per_queue=8 * 4, target_size=128,
-                 file_pattern='*.npy', label_slice=1, input_slice=(0,), do_reshuffle=True, keys=None):
+                 file_pattern='*.npy', label_slice=None, input_slice=(0,), do_reshuffle=True, keys=None):
 
         data_loader = NumpyDataLoader(base_dir=base_dir, mode=mode, batch_size=batch_size, num_batches=num_batches, seed=seed, file_pattern=file_pattern,
                                       input_slice=input_slice, label_slice=label_slice, keys=keys)
@@ -85,11 +85,12 @@ class NumpyDataSet(object):
 
 class NumpyDataLoader(SlimDataLoaderBase):
     def __init__(self, base_dir, mode="train", batch_size=16, num_batches=10000000,
-                 seed=None, file_pattern='*.npy', label_slice=1, input_slice=(0,), keys=None):
+                 seed=None, file_pattern='*.npy', label_slice=None, input_slice=(0,), keys=None):
 
         self.files, self.file_len, self.slices = load_dataset(base_dir=base_dir, pattern=file_pattern, slice_offset=0, keys=keys, )
         super(NumpyDataLoader, self).__init__(self.slices, batch_size, num_batches)
 
+        self.base_dir = base_dir
         self.batch_size = batch_size
 
         self.use_next = False
@@ -159,19 +160,17 @@ class NumpyDataLoader(SlimDataLoaderBase):
             # and slice[1] incicats which one in the 3d image it's.
             fn_name = self.files[slice[0]]
 
-            numpy_array = np.load(fn_name, mmap_mode="r")  # load data from .npy to numpy_arrary
+            numpy_array = np.load(os.path.join(self.base_dir, fn_name), mmap_mode="r")
+            shape = numpy_array.shape
 
-            numpy_slice = numpy_array[slice[1]]  #(2,64,64)
-            data.append(numpy_slice[None, self.input_slice[0]])   # 'None' keeps the dimension   (1,64,64)
+            numpy_slice = numpy_array[:, :, slice[1]].reshape(1, shape[0], shape[1]) #(2,64,64)
+            data.append(numpy_slice)   # 'None' keeps the dimension   (1,64,64)
 
             if self.label_slice is not None:
                 labels.append(numpy_slice[None, self.label_slice[0]])   # 'None' keeps the dimension
 
             fnames.append(self.files[slice[0]])
             slice_idxs.append(slice[1])
-
-        labels = np.asarray(labels)
-        labels[labels > 7] = 0
 
 
 

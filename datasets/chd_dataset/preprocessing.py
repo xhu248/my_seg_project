@@ -21,7 +21,6 @@ from medpy.io import load
 import os
 import numpy as np
 
-from datasets.utils import reshape
 from utilities.file_and_folder_operations import subfiles
 
 def reshape_array(numpy_array):
@@ -37,7 +36,6 @@ def reshape_array(numpy_array):
 
 def preprocess_data(root_dir):
     image_dir = os.path.join(root_dir, 'images')
-    label_dir = os.path.join(root_dir, 'labels')
     output_dir = os.path.join(root_dir, 'preprocessed')
 
     if not os.path.exists(output_dir):
@@ -50,10 +48,8 @@ def preprocess_data(root_dir):
 
     for f in nii_files:
         file_dir = os.path.join(output_dir, f.split('.')[0]+'.npy')
-        if not os.path.exists(file_dir) and '081' not in f:
+        if not os.path.exists(file_dir) and '477' not in f:
             image, _ = load(os.path.join(image_dir, f))
-            label, _ = load(os.path.join(label_dir, f.replace('image', 'label')))
-
 
             # normalize images
             image = (image - image.min()) / (image.max() - image.min())
@@ -61,11 +57,9 @@ def preprocess_data(root_dir):
             # image = reshape(image, append_value=0, new_shape=(64, 64, 64))
             # label = reshape(label, append_value=0, new_shape=(64, 64, 64))
 
-            result = np.stack((image, label))
-            result = reshape_array(result)
 
-            np.save(os.path.join(output_dir, f.split('.')[0] + '.npy'), result)
-            print(f)
+            np.save(os.path.join(output_dir, f.split('.')[0] + '.npy'), image)
+            print(f, ' shape:', image.shape)
 
     print(total)
 
