@@ -46,7 +46,7 @@ def training():
     else:
         print('The data has already been preprocessed. It will not be preprocessed again. Delete the folder to enforce it.')
 
-    # create_splits(output_dir=c.split_dir, image_dir=c.scaled_image_32_dir)
+    create_splits(excel_path=os.path.join(c.split_dir, 'pvo_1.xlsx'), output_dir=c.split_dir, image_dir=c.data_dir)
 
     exp = FCNExperiment(config=c, name='tapvc_experiment', n_epochs=c.n_epochs,
                         seed=42, append_rnd_to_name=c.append_rnd_string)   # visdomlogger_kwargs={"auto_start": c.start_visdom}
@@ -72,4 +72,4 @@ def testing():
 
 
 if __name__ == "__main__":
-    testing()
+    training()

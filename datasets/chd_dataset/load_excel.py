@@ -1,17 +1,19 @@
 # return a dictionary mapping file name to whether tapvc
+# and create splits based on number of pvo
 import pandas as pd
 import os
 
-def load_excel(file_path, image_dir):
-    df = pd.read_excel('file_path')
+def load_excel(excel_path, image_dir):
+    df = pd.read_excel(excel_path)
     new_number = df['new number']
     pvo = df['pvo']
-    pvo_dict = {}
+    tapvc_dict = {}
+    pvo_list = []
 
     # mapping new number to whether pvo
     length = len(new_number)
-    for k in length:
-        file_name = new_number[k] + '.nii,gz'
-        pvo_dict[file_name] = pvo[k]
+    for k in range(length):
+        file_name = str(new_number[k]) + '.npy'
+        tapvc_dict[file_name] = pvo[k]
 
-    return pvo_dict
+    return tapvc_dict
