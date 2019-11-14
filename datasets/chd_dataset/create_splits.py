@@ -6,41 +6,64 @@ import os
 import numpy as np
 
 
-def create_splits(excel_path, output_dir, image_dir):
+def create_splits(excel_path, output_dir, image_dir, do_balancement=False):
     npy_files = subfiles(image_dir, suffix=".npy", join=False)
     pvo_list = []
     non_pvo_list = []
     tapvc_dict = load_excel(excel_path, image_dir)
 
     for file in npy_files:
-        if tapvc_dict[file] == 1:
-            pvo_list.append(file)
-        else:
-            non_pvo_list.append(file)
+        if file in tapvc_dict:
+            if tapvc_dict[file] == 1:
+                pvo_list.append(file)
+            else:
+                non_pvo_list.append(file)
 
     print('Number of pvo: %d, Number of non_pvo: %d'%(len(pvo_list), len(non_pvo_list)))
 
-    trainset_size = len(npy_files)*50//100
-    valset_size = len(npy_files)*25//100
-    testset_size = len(npy_files)*25//100
+    valset_negative_size = len(pvo_list)*25 // 100
+    testset_negative_size = len(pvo_list)*25 // 100
+    trainset_negative_size = len(pvo_list) - valset_negative_size - testset_negative_size
+
+    if do_balancement:
+        trainset_positive_size = trainset_negative_size * 5
+        valset_positive_size = valset_negative_size * 5
+        testset_positive_size = testset_negative_size * 5
+    else:
+        valset_positive_size = len(non_pvo_list) * 25 // 100
+        testset_positive_size = len(non_pvo_list) * 25 // 100
+        trainset_positive_size = len(pvo_list) - valset_positive_size - testset_positive_size
 
     splits = []
     for split in range(0, 5):
-        image_list = npy_files.copy()
+        positive_set = non_pvo_list.copy()
+        negative_set = pvo_list.copy()
         trainset = []
         valset = []
         testset = []
-        for i in range(0, trainset_size):
-            patient = np.random.choice(image_list)
-            image_list.remove(patient)
+        for i in range(0, trainset_positive_size):
+            patient = np.random.choice(positive_set)
+            positive_set.remove(patient)
             trainset.append(patient[:-4])
-        for i in range(0, valset_size):
-            patient = np.random.choice(image_list)
-            image_list.remove(patient)
+        for i in range(0, trainset_negative_size):
+            patient = np.random.choice(negative_set)
+            negative_set.remove(patient)
+            trainset.append(patient[:-4])
+        for i in range(0, valset_positive_size):
+            patient = np.random.choice(positive_set)
+            positive_set.remove(patient)
             valset.append(patient[:-4])
-        for i in range(0, testset_size):
-            patient = np.random.choice(image_list)
-            image_list.remove(patient)
+        for i in range(0, valset_negative_size):
+            patient = np.random.choice(negative_set)
+            negative_set.remove(patient)
+            trainset.append(patient[:-4])
+        for i in range(0, testset_positive_size):
+            patient = np.random.choice(positive_set)
+            positive_set.remove(patient)
+            testset.append(patient[:-4])
+        for i in range(0, testset_negative_size):
+            patient = np.random.choice(negative_set)
+            negative_set.remove(patient)
             testset.append(patient[:-4])
         split_dict = dict()
         split_dict['train'] = trainset

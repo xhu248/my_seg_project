@@ -23,6 +23,7 @@ from configs.Config_chd import get_config
 from datasets.chd_dataset.preprocessing import preprocess_data
 from datasets.chd_dataset.create_splits import create_splits
 from experiments.FCNExperiment import FCNExperiment
+from experiments.BinaryClassExperiment import BinaryClassExperiment
 from experiments.ChdExperiment import CHDExperiment
 from datasets.downsanpling_data import downsampling_image
 
@@ -46,9 +47,10 @@ def training():
     else:
         print('The data has already been preprocessed. It will not be preprocessed again. Delete the folder to enforce it.')
 
-    create_splits(excel_path=os.path.join(c.split_dir, 'pvo_1.xlsx'), output_dir=c.split_dir, image_dir=c.data_dir)
+    # preprocess_data(root_dir=os.path.join(c.data_root_dir, dataset_name))
+    # create_splits(excel_path=os.path.join(c.split_dir, 'pvo_1.xlsx'), output_dir=c.split_dir, image_dir=c.data_dir)
 
-    exp = FCNExperiment(config=c, name='tapvc_experiment', n_epochs=c.n_epochs,
+    exp = BinaryClassExperiment(config=c, name='tapvc_experiment', n_epochs=c.n_epochs,
                         seed=42, append_rnd_to_name=c.append_rnd_string)   # visdomlogger_kwargs={"auto_start": c.start_visdom}
 
     exp.run()

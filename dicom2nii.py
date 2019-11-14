@@ -21,21 +21,15 @@ if not os.path.exists(images_folder):
 for f in os.listdir(orig_folder):
     if not os.path.exists(l(folder, f)):
         shutil.move(l(orig_folder, f), folder)
-        print(f)
+
 """
-
-for f in os.listdir(output_folder):
-    if '.nii.gz' in f:
-        shutil.move(l(output_folder, f), images_folder)
-        print(f)
-
 
 subdir = [(l(folder, i), i) for i in os.listdir(folder)]
 
 for dic_dir in subdir:
     output_file = os.path.join(images_folder, dic_dir[1] + '.nii.gz')
     # 488 is no cubic image not os.path.exists(output_file)
-    if not os.path.exists(output_file) and '348' != dic_dir[1] and '32' != dic_dir[1] and '241' != dic_dir[1]:
+    if not os.path.exists(output_file) and '488' != dic_dir[1]:
         print(dic_dir)
         dicom2nifti.dicom_series_to_nifti(dic_dir[0], output_file, reorient_nifti=True)
 

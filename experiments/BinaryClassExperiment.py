@@ -8,7 +8,7 @@ import torch.nn as nn
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 import torch.nn.functional as F
 
-from datasets.two_dim.NumpyDataLoader import NumpyDataSet
+from datasets.three_dim.NumpyDataLoader import NumpyDataSet
 from trixi.experiment.pytorchexperiment import PytorchExperiment
 
 from networks.RecursiveUNet import UNet
@@ -38,17 +38,21 @@ class BinaryClassExperiment(PytorchExperiment):
 
     def setup(self):
 
-        tr_keys = os.listdir(self.config.data_dir)
-        val_keys = []
-        test_keys = os.listdir(self.config.data_dir)
+        pkl_dir = self.config.split_dir
+        with open(os.path.join(pkl_dir, "splits.pkl"), 'rb') as f:
+            splits = pickle.load(f)
+
+        tr_keys = splits[self.config.fold]['train']
+        val_keys = splits[self.config.fold]['val']
+        test_keys = splits[self.config.fold]['test']
 
         self.device = torch.device(self.config.device if torch.cuda.is_available() else 'cpu')    #
 
-        self.train_data_loader = NumpyDataSet(self.config.data_dir, target_size=512, batch_size=self.config.batch_size,
+        self.train_data_loader = NumpyDataSet(self.config.data_dir, target_size=(256, 256, 256), batch_size=self.config.batch_size,
                                               keys=tr_keys, do_reshuffle=True)
-        self.val_data_loader = NumpyDataSet(self.config.data_dir, target_size=512, batch_size=self.config.batch_size,
+        self.val_data_loader = NumpyDataSet(self.config.data_dir, target_size=(256, 256, 256), batch_size=self.config.batch_size,
                                             keys=val_keys, mode="val", do_reshuffle=True)
-        self.test_data_loader = NumpyDataSet(self.config.data_dir, target_size=512, batch_size=self.config.batch_size,
+        self.test_data_loader = NumpyDataSet(self.config.data_dir, target_size=(256, 256, 256), batch_size=self.config.batch_size,
                                              keys=test_keys, mode="test", do_reshuffle=False)
         self.model = UNet(num_classes=self.config.num_classes, num_downs=4)
 
