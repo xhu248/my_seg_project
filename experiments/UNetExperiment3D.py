@@ -51,19 +51,16 @@ class UNetExperiment3D(PytorchExperiment):
     """
 
     def setup(self):
-        pkl_dir = self.config.split_dir
-        with open(os.path.join(pkl_dir, "splits.pkl"), 'rb') as f:
-            splits = pickle.load(f)
 
-        tr_keys = splits[self.config.fold]['train']
-        val_keys = splits[self.config.fold]['val']
-        test_keys = splits[self.config.fold]['test']
+        tr_keys = os.listdir(self.config.data_dir)
+        val_keys = []
+        test_keys = []
 
         self.device = torch.device(self.config.device if torch.cuda.is_available() else "cpu")
 
-        self.train_data_loader = NumpyDataSet(self.config.data_dir, target_size=self.config.patch_size, batch_size=self.config.batch_size,
+        self.train_data_loader = NumpyDataSet(self.config.data_dir, target_size=(256, 256, 256), batch_size=self.config.batch_size,
                                               keys=tr_keys)
-        self.val_data_loader = NumpyDataSet(self.config.data_dir, target_size=self.config.patch_size, batch_size=self.config.batch_size,
+        self.val_data_loader = NumpyDataSet(self.config.data_dir, target_size=(256, 256, 256), batch_size=self.config.batch_size,
                                             keys=val_keys, mode="val", do_reshuffle=False)
         self.test_data_loader = NumpyDataSet(self.config.data_test_dir, target_size=self.config.patch_size, batch_size=self.config.batch_size,
                                              keys=test_keys, mode="test", do_reshuffle=False)
@@ -144,7 +141,7 @@ class UNetExperiment3D(PytorchExperiment):
                 loss = self.dice_loss(pred_softmax, target.squeeze()) + self.ce_loss(pred, target.squeeze())
                 loss_list.append(loss.item())
 
-        assert data is not None, 'data is None. Please check if your dataloader works properly'
+        # assert data is not None, 'data is None. Please check if your dataloader works properly'
         self.scheduler.step(np.mean(loss_list))
 
         self.elog.print('Epoch: %d Loss: %.4f' % (self._epoch_idx, np.mean(loss_list)))

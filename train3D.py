@@ -15,11 +15,12 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from configs.Config_unet import get_config
+from configs.Config_chd import get_config
 from experiments.UNetExperiment3D import UNetExperiment3D
 
 if __name__ == "__main__":
     c = get_config()
+
 
     exp = UNetExperiment3D(config=c, name='unet_experiment', n_epochs=c.n_epochs,
                          seed=42, append_rnd_to_name=c.append_rnd_string, globs=globals())

@@ -30,7 +30,7 @@ def get_config():
         # Train parameters
         num_classes=3,
         in_channels=1,
-        batch_size=8,
+        batch_size=1,
         patch_size=64,
         n_epochs=50,
         learning_rate=0.0002,
