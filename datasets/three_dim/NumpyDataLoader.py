@@ -158,10 +158,12 @@ class NumpyDataLoader(SlimDataLoaderBase):
 
             numpy_array = np.load(fn_name, mmap_mode="r")
 
-            data.append(numpy_array[:, None, self.input[0]])   # 'None' keeps the dimension
+            data.append(numpy_array[None, self.input[0]])   # 'None' keeps the dimension
 
             if self.label is not None:
-                labels.append(numpy_array[None, self.label[0]])   # 'None' keeps the dimension
+                label_array = np.copy(numpy_array[None, self.label[0]])
+                label_array[label_array > 7] = 0
+                labels.append(label_array)   # 'None' keeps the dimension
 
 
             fnames.append(self.files[idx])

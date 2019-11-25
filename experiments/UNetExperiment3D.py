@@ -23,6 +23,7 @@ import torch
 import torch.optim as optim
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 import torch.nn.functional as F
+import torch.nn as nn
 
 from datasets.three_dim.NumpyDataLoader import NumpyDataSet
 from trixi.experiment.pytorchexperiment import PytorchExperiment
@@ -62,13 +63,19 @@ class UNetExperiment3D(PytorchExperiment):
 
         self.device = torch.device(self.config.device if torch.cuda.is_available() else "cpu")
 
-        self.train_data_loader = NumpyDataSet(self.config.data_dir, target_size=(64, 64, 64), batch_size=self.config.batch_size,
+        self.train_data_loader = NumpyDataSet(self.config.data_dir, target_size=(128, 128, 128), batch_size=self.config.batch_size,
                                               keys=tr_keys)
-        self.val_data_loader = NumpyDataSet(self.config.data_dir, target_size=(64, 64, 64), batch_size=self.config.batch_size,
+        self.val_data_loader = NumpyDataSet(self.config.data_dir, target_size=(128, 128, 128), batch_size=self.config.batch_size,
                                             keys=val_keys, mode="val", do_reshuffle=False)
         self.test_data_loader = NumpyDataSet(self.config.data_test_dir, target_size=self.config.patch_size, batch_size=self.config.batch_size,
                                              keys=test_keys, mode="test", do_reshuffle=False)
         self.model = UNet3D(num_classes=8, in_channels=1)
+
+        # self.model.to(self.device)
+
+        if torch.cuda.device_count() > 1:
+            print("Let's ues", torch.cuda.device_count(), "GPUs!")
+            self.model = nn.DataParallel(self.model)
 
         self.model.to(self.device)
 

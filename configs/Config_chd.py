@@ -30,13 +30,13 @@ def get_config():
         # Train parameters
         num_classes=8,
         in_channels=1,
-        batch_size=8,
+        batch_size=2,
         patch_size=64,
         n_epochs=50,
         learning_rate=0.0002,
         fold=0,  # The 'splits.pkl' may contain multiple folds. Here we choose which one we want to use.
 
-        device="cuda",  # 'cuda' is the default CUDA device, you can use also 'cpu'. For more information, see https://pytorch.org/docs/stable/notes/cuda.html
+        device="cuda:0",  # 'cuda' is the default CUDA device, you can use also 'cpu'. For more information, see https://pytorch.org/docs/stable/notes/cuda.html
 
         # Logging parameters
         name='Basic_Unet',
