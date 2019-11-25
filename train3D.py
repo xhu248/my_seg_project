@@ -15,11 +15,27 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+import os
+
+from os.path import exists
+
 from configs.Config_chd import get_config
 from experiments.UNetExperiment3D import UNetExperiment3D
+from datasets.chd_dataset.create_splits import create_splits
+from datasets.chd_dataset.preprocessing import preprocess_data
 
 if __name__ == "__main__":
     c = get_config()
+
+    dataset_name = 'CHD_segmentation_dataset'
+
+    if not exists(os.path.join(os.path.join(c.data_root_dir, dataset_name), 'preprocessed')):
+        print('Preprocessing data. [STARTED]')
+        preprocess_data(root_dir=os.path.join(c.data_root_dir, dataset_name))
+        create_splits(output_dir=c.split_dir, image_dir=c.data_dir)
+        print('Preprocessing data. [DONE]')
+    else:
+        print('The data has already been preprocessed. It will not be preprocessed again. Delete the folder to enforce it.')
 
 
     exp = UNetExperiment3D(config=c, name='unet_experiment', n_epochs=c.n_epochs,

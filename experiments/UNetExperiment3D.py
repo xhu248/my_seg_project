@@ -52,19 +52,23 @@ class UNetExperiment3D(PytorchExperiment):
 
     def setup(self):
 
-        tr_keys = os.listdir(self.config.data_dir)
-        val_keys = []
-        test_keys = []
+        pkl_dir = self.config.split_dir
+        with open(os.path.join(pkl_dir, "splits.pkl"), 'rb') as f:
+            splits = pickle.load(f)
+
+        tr_keys = splits[self.config.fold]['train']
+        val_keys = splits[self.config.fold]['val']
+        test_keys = splits[self.config.fold]['test']
 
         self.device = torch.device(self.config.device if torch.cuda.is_available() else "cpu")
 
-        self.train_data_loader = NumpyDataSet(self.config.data_dir, target_size=(256, 256, 256), batch_size=self.config.batch_size,
+        self.train_data_loader = NumpyDataSet(self.config.data_dir, target_size=(64, 64, 64), batch_size=self.config.batch_size,
                                               keys=tr_keys)
-        self.val_data_loader = NumpyDataSet(self.config.data_dir, target_size=(256, 256, 256), batch_size=self.config.batch_size,
+        self.val_data_loader = NumpyDataSet(self.config.data_dir, target_size=(64, 64, 64), batch_size=self.config.batch_size,
                                             keys=val_keys, mode="val", do_reshuffle=False)
         self.test_data_loader = NumpyDataSet(self.config.data_test_dir, target_size=self.config.patch_size, batch_size=self.config.batch_size,
                                              keys=test_keys, mode="test", do_reshuffle=False)
-        self.model = UNet3D(num_classes=3, in_channels=1)
+        self.model = UNet3D(num_classes=8, in_channels=1)
 
         self.model.to(self.device)
 

@@ -130,7 +130,7 @@ def soft_dice_per_batch_2(net_output, gt, smooth=1., smooth_in_nom=1., backgroun
             rebalance_weights = rebalance_weights.cuda(net_output.device.index)
         intersect = intersect * rebalance_weights
         # fn = fn * rebalance_weights
-    result = (1 - (2*intersect + smooth_in_nom)/(net_output_sqaure + gt_square + smooth) * weights).mean()
+    result = (1 - (2*intersect + smooth_in_nom)/(net_output_sqaure + gt_square + smooth)*weights).mean()
     return result
 
 

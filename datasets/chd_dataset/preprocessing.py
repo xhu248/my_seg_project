@@ -24,15 +24,6 @@ import numpy as np
 from datasets.utils import reshape
 from utilities.file_and_folder_operations import subfiles
 
-def reshape_array(numpy_array):
-    shape = numpy_array.shape[1]
-    slice_img = numpy_array[:, :, :, 0].reshape(1, 2, shape, shape)
-    slice_len = np.shape(numpy_array)[3]
-    for k in range(1, slice_len):
-        slice_array = numpy_array[:, :, :, k].reshape(1, 2, shape, shape)
-        slice_img = np.concatenate((slice_img, slice_array))
-
-    return slice_img
 
 
 def preprocess_data(root_dir):
@@ -62,7 +53,6 @@ def preprocess_data(root_dir):
             # label = reshape(label, append_value=0, new_shape=(64, 64, 64))
 
             result = np.stack((image, label))
-            result = reshape_array(result)
 
             np.save(os.path.join(output_dir, f.split('.')[0] + '.npy'), result)
             print(f)
