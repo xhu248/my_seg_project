@@ -133,8 +133,8 @@ class UNetExperiment3D(PytorchExperiment):
             batch_counter += 1
 
     def validate(self, epoch):
-        if epoch % 5 != 0:
-            return
+        # if epoch % 5 != 0:
+        #   return
         self.elog.print('VALIDATE')
         self.model.eval()
 
@@ -147,9 +147,9 @@ class UNetExperiment3D(PytorchExperiment):
                 target = data_batch['seg'][0].long().to(self.device)
 
                 pred = self.model(data)
-                pred_softmax = F.softmax(pred)  # We calculate a softmax, because our SoftDiceLoss expects that as an input. The CE-Loss does the softmax internally.
+                pred_softmax = F.softmax(pred)   # We calculate a softmax, because our SoftDiceLoss expects that as an input. The CE-Loss does the softmax internally.
 
-                loss = self.dice_loss(pred_softmax, target.squeeze()) + self.ce_loss(pred, target.squeeze())
+                loss = self.dice_loss(pred_softmax, target.squeeze())  # self.ce_loss(pred, target.squeeze())
                 loss_list.append(loss.item())
 
         # assert data is not None, 'data is None. Please check if your dataloader works properly'
