@@ -10,7 +10,7 @@ def create_splits(excel_path, output_dir, image_dir, do_balancement=False):
     npy_files = subfiles(image_dir, suffix=".npy", join=False)
     pvo_list = []
     non_pvo_list = []
-    tapvc_dict = load_excel(excel_path, image_dir)
+    tapvc_dict = load_excel(excel_path)
 
     for file in npy_files:
         if file in tapvc_dict:
@@ -32,7 +32,7 @@ def create_splits(excel_path, output_dir, image_dir, do_balancement=False):
     else:
         valset_positive_size = len(non_pvo_list) * 25 // 100
         testset_positive_size = len(non_pvo_list) * 25 // 100
-        trainset_positive_size = len(pvo_list) - valset_positive_size - testset_positive_size
+        trainset_positive_size = len(non_pvo_list) - valset_positive_size - testset_positive_size
 
     splits = []
     for split in range(0, 5):
@@ -49,6 +49,7 @@ def create_splits(excel_path, output_dir, image_dir, do_balancement=False):
             patient = np.random.choice(negative_set)
             negative_set.remove(patient)
             trainset.append(patient[:-4])
+
         for i in range(0, valset_positive_size):
             patient = np.random.choice(positive_set)
             positive_set.remove(patient)
@@ -56,7 +57,8 @@ def create_splits(excel_path, output_dir, image_dir, do_balancement=False):
         for i in range(0, valset_negative_size):
             patient = np.random.choice(negative_set)
             negative_set.remove(patient)
-            trainset.append(patient[:-4])
+            valset.append(patient[:-4])
+
         for i in range(0, testset_positive_size):
             patient = np.random.choice(positive_set)
             positive_set.remove(patient)

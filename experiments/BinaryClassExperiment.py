@@ -11,9 +11,11 @@ import torch.nn.functional as F
 from datasets.three_dim.NumpyDataLoader import NumpyDataSet
 from trixi.experiment.pytorchexperiment import PytorchExperiment
 
-from networks.RecursiveUNet import UNet
+from networks.ClassificationNN import ClassificationNN
 
 from loss_functions.dice_loss import SoftDiceLoss
+
+from datasets.chd_dataset.load_excel import load_excel
 
 
 
@@ -48,18 +50,18 @@ class BinaryClassExperiment(PytorchExperiment):
 
         self.device = torch.device(self.config.device if torch.cuda.is_available() else 'cpu')    #
 
-        self.train_data_loader = NumpyDataSet(self.config.data_dir, target_size=(256, 256, 256), batch_size=self.config.batch_size,
+        self.train_data_loader = NumpyDataSet(self.config.data_dir, target_size=(128, 128, 128), batch_size=self.config.batch_size,
                                               keys=tr_keys, do_reshuffle=True)
-        self.val_data_loader = NumpyDataSet(self.config.data_dir, target_size=(256, 256, 256), batch_size=self.config.batch_size,
+        self.val_data_loader = NumpyDataSet(self.config.data_dir, target_size=(128, 128, 128), batch_size=self.config.batch_size,
                                             keys=val_keys, mode="val", do_reshuffle=True)
-        self.test_data_loader = NumpyDataSet(self.config.data_dir, target_size=(256, 256, 256), batch_size=self.config.batch_size,
+        self.test_data_loader = NumpyDataSet(self.config.data_dir, target_size=(128, 128, 128), batch_size=self.config.batch_size,
                                              keys=test_keys, mode="test", do_reshuffle=False)
-        self.model = UNet(num_classes=self.config.num_classes, num_downs=4)
+        self.model = ClassificationNN()
 
         if torch.cuda.device_count() > 1:
             print("Let's use", torch.cuda.device_count(), "GPUs!")
             # dim = 0 [30, xxx] -> [10, ...], [10, ...], [10, ...] on 3 GPUs
-            model = nn.DataParallel(self.model)
+            self.model = nn.DataParallel(self.model)
 
         self.model.to(self.device)
 
@@ -69,7 +71,8 @@ class BinaryClassExperiment(PytorchExperiment):
         self.dice_loss = SoftDiceLoss(batch_dice=True)  # Softmax für DICE Loss!
 
         # weight = torch.tensor([1, 30, 30]).float().to(self.device)
-        self.ce_loss = torch.nn.CrossEntropyLoss()  # Kein Softmax für CE Loss -> ist in torch schon mit drin!
+        weight = torch.FloatTensor([1, 20]).to(self.device)
+        self.ce_loss = torch.nn.CrossEntropyLoss(weight=weight)  # Kein Softmax für CE Loss -> ist in torch schon mit drin!
         # self.dice_pytorch = dice_pytorch(self.config.num_classes)
 
         self.optimizer = optim.Adam(self.model.parameters(), lr=self.config.learning_rate)
@@ -97,22 +100,26 @@ class BinaryClassExperiment(PytorchExperiment):
 
             self.optimizer.zero_grad()
 
+            target = []
+
             # Shape of data_batch = [1, b, c, w, h]
             # Desired shape = [b, c, w, h]
             # Move data and target to the GPU
             data = data_batch['data'][0].float().to(self.device)
-            target = data_batch['seg'][0].long().to(self.device)
-            max_value = target.max()
-            min_value = target.min()
+            tapvc_dict = load_excel(self.config.excel_dir)
+            fname_list = data_batch['fnames']
+            for fname in fname_list:
+                file = fname[0].split('preprocessed/')[1]
+                assert file in tapvc_dict, 'number of .npy is not in pvo excel'
+                target.append(tapvc_dict[file])
 
-            pred = self.model(data)
-            pred_softmax = F.softmax(pred, dim=1)  # We calculate a softmax, because our SoftDiceLoss expects that as an input. The CE-Loss does the softmax internally.
-            pred_image = torch.argmax(pred_softmax, dim=1)
+            target = torch.FloatTensor(target).to(self.device).long()
 
-            t = target.squeeze()
+            # target = data_batch['seg'][0].long().to(self.device)
 
-            # loss = self.dice_pytorch(outputs=pred_image, labels=target)
-            loss = self.ce_loss(pred, target.squeeze()) + self.dice_loss(pred_softmax, target.squeeze())
+            pred = self.model(data.squeeze()) # should be of size (N, 2)
+
+            loss = self.ce_loss(pred, target.squeeze())
             # loss = self.dice_loss(pred_softmax, target.squeeze())
             loss.backward()
             self.optimizer.step()
@@ -123,10 +130,10 @@ class BinaryClassExperiment(PytorchExperiment):
 
                 self.add_result(value=loss.item(), name='Train_Loss', tag='Loss', counter=epoch + (batch_counter / self.train_data_loader.data_loader.num_batches))
 
-                self.clog.show_image_grid(data.float(), name="data", normalize=True, scale_each=True, n_iter=epoch)
-                self.clog.show_image_grid(target.float(), name="mask", title="Mask", n_iter=epoch)
-                self.clog.show_image_grid(torch.argmax(pred.cpu(), dim=1, keepdim=True), name="unt_argmax", title="Unet", n_iter=epoch)
-                self.clog.show_image_grid(pred.cpu()[:, 1:2, ], name="unt", normalize=True, scale_each=True, n_iter=epoch)
+                # self.clog.show_image_grid(data.float(), name="data", normalize=True, scale_each=True, n_iter=epoch)
+                # self.clog.show_image_grid(target.float(), name="mask", title="Mask", n_iter=epoch)
+                # self.clog.show_image_grid(torch.argmax(pred.cpu(), dim=1, keepdim=True), name="unt_argmax", title="Unet", n_iter=epoch)
+                # self.clog.show_image_grid(pred.cpu()[:, 1:2, ], name="unt", normalize=True, scale_each=True, n_iter=epoch)
 
             batch_counter += 1
 
@@ -138,29 +145,48 @@ class BinaryClassExperiment(PytorchExperiment):
 
         data = None
         loss_list = []
+        num_pvo = 0
+        correct_pvo = 0
 
         with torch.no_grad():
             for data_batch in self.val_data_loader:
                 data = data_batch['data'][0].float().to(self.device)
-                target = data_batch['seg'][0].long().to(self.device)
 
-                pred = self.model(data)
-                pred_softmax = F.softmax(pred)  # We calculate a softmax, because our SoftDiceLoss expects that as an input. The CE-Loss does the softmax internally.
+                target = []
+                tapvc_dict = load_excel(self.config.excel_dir)
+                fname_list = data_batch['fnames']
+                for fname in fname_list:
+                    file = fname[0].split('preprocessed/')[1]
+                    assert file in tapvc_dict, 'number of .npy is not in pvo excel'
+                    target.append(tapvc_dict[file])
 
-                loss = self.dice_loss(pred_softmax, target.squeeze()) #self.ce_loss(pred, target.squeeze())
+                target = torch.FloatTensor(target).to(self.device).long()
+
+                pred = self.model(data.squeeze())
+
+                pred_softmax = F.softmax(pred)
+                pred_pvo = torch.argmax(pred_softmax, dim=1)
+
+                c = pred_pvo.mul(target)
+
+                correct_pvo += sum(c)
+                num_pvo += sum(target)
+
+
+                loss = self.ce_loss(pred, target.squeeze())
                 loss_list.append(loss.item())
 
         assert data is not None, 'data is None. Please check if your dataloader works properly'
         self.scheduler.step(np.mean(loss_list))
 
-        self.elog.print('Epoch: %d Loss: %.4f' % (self._epoch_idx, np.mean(loss_list)))
+        self.elog.print('Epoch: %d Loss: %.4f Accuracy: %.4f' % (self._epoch_idx, np.mean(loss_list), correct_pvo/num_pvo))
 
         self.add_result(value=np.mean(loss_list), name='Val_Loss', tag='Loss', counter=epoch+1)
 
-        self.clog.show_image_grid(data.float(), name="data_val", normalize=True, scale_each=True, n_iter=epoch)
-        self.clog.show_image_grid(target.float(), name="mask_val", title="Mask", n_iter=epoch)
-        self.clog.show_image_grid(torch.argmax(pred.data.cpu(), dim=1, keepdim=True), name="unt_argmax_val", title="Unet", n_iter=epoch)
-        self.clog.show_image_grid(pred.data.cpu()[:, 1:2, ], name="unt_val", normalize=True, scale_each=True, n_iter=epoch)
+        # self.clog.show_image_grid(data.float(), name="data_val", normalize=True, scale_each=True, n_iter=epoch)
+        # self.clog.show_image_grid(target.float(), name="mask_val", title="Mask", n_iter=epoch)
+        # self.clog.show_image_grid(torch.argmax(pred.data.cpu(), dim=1, keepdim=True), name="unt_argmax_val", title="Unet", n_iter=epoch)
+        # self.clog.show_image_grid(pred.data.cpu()[:, 1:2, ], name="unt_val", normalize=True, scale_each=True, n_iter=epoch)
 
     def test(self):
 
@@ -176,10 +202,10 @@ class BinaryClassExperiment(PytorchExperiment):
 
         with torch.no_grad():
             for data_batch in self.test_data_loader:
-                data = data_batch['data'][0].float().to(self.device)
+                data = data_batch['data'][0].float().to(self.device) # shape(N, 1, d, d, d)
                 file_dir = data_batch['fnames']  # 8*tuple (a,)
 
-                pred = self.model(data)
+                pred = self.model(data.squeeze())
                 # pred_softmax = F.softmax(pred, dim=1)  # We calculate a softmax, because our SoftDiceLoss expects that as an input. The CE-Loss does the softmax internally.
                 # pred_image = torch.argmax(pred_softmax, dim=1)
 

@@ -157,15 +157,16 @@ class NumpyDataLoader(SlimDataLoaderBase):
             fn_name = self.files[idx]
 
             numpy_array = np.load(fn_name, mmap_mode="r")
-            shape = numpy_array.shape
 
-            data.append(numpy_array.reshape(1, shape[0], shape[1], shape[2]))   # 'None' keeps the dimension
+            data.append(numpy_array[None])
 
             if self.label is not None:
                 labels.append(numpy_array[None, self.label[0]])   # 'None' keeps the dimension
 
             fnames.append(self.files[idx])
             idxs.append(idx)
+
+        data = np.array(data)
 
         ret_dict = {'data': data, 'fnames': fnames, 'idxs': idxs}
         if self.label is not None:

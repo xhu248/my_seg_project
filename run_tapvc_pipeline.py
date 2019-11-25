@@ -48,7 +48,7 @@ def training():
         print('The data has already been preprocessed. It will not be preprocessed again. Delete the folder to enforce it.')
 
     # preprocess_data(root_dir=os.path.join(c.data_root_dir, dataset_name))
-    # create_splits(excel_path=os.path.join(c.split_dir, 'pvo_1.xlsx'), output_dir=c.split_dir, image_dir=c.data_dir)
+    # create_splits(excel_path=c.excel_dir, output_dir=c.split_dir, image_dir=c.data_dir)
 
     exp = BinaryClassExperiment(config=c, name='tapvc_experiment', n_epochs=c.n_epochs,
                         seed=42, append_rnd_to_name=c.append_rnd_string)   # visdomlogger_kwargs={"auto_start": c.start_visdom}
@@ -65,8 +65,6 @@ def testing():
     # c.checkpoint_dir = c.base_dir + '/20190424-234657_unet_experiment' + '/checkpoint/checkpoint_last' # SDG
     c.checkpoint_dir = c.base_dir + '/20191108-115239_chd_experiment' + '/checkpoint/checkpoint_current'
 
-
-
     exp = FCNExperiment(config=c, name='tapvc', n_epochs=c.n_epochs,
                                seed=42, globs=globals())
     exp.run_test(setup=True)
@@ -74,4 +72,4 @@ def testing():
 
 
 if __name__ == "__main__":
-    training()
+    testing()

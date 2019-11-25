@@ -3,7 +3,8 @@
 import pandas as pd
 import os
 
-def load_excel(excel_path, image_dir):
+
+def load_excel(excel_path):
     df = pd.read_excel(excel_path)
     new_number = df['new number']
     pvo = df['pvo']

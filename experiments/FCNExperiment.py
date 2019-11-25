@@ -62,13 +62,13 @@ class FCNExperiment(PytorchExperiment):
 
         self.device = torch.device(self.config.device if torch.cuda.is_available() else 'cpu')    #
 
-        self.train_data_loader = NumpyDataSet(self.config.data_dir, target_size=512, batch_size=self.config.batch_size,
+        self.train_data_loader = NumpyDataSet(self.config.data_dir, target_size=128, batch_size=self.config.batch_size,
                                               keys=tr_keys, do_reshuffle=True)
-        self.val_data_loader = NumpyDataSet(self.config.data_dir, target_size=512, batch_size=self.config.batch_size,
+        self.val_data_loader = NumpyDataSet(self.config.data_dir, target_size=128, batch_size=self.config.batch_size,
                                             keys=val_keys, mode="val", do_reshuffle=True)
-        self.test_data_loader = NumpyDataSet(self.config.data_dir, target_size=512, batch_size=self.config.batch_size,
+        self.test_data_loader = NumpyDataSet(self.config.data_dir, target_size=128, batch_size=self.config.batch_size,
                                              keys=test_keys, mode="test", do_reshuffle=False)
-        self.model = UNet(num_classes=self.config.num_classes, num_downs=4)
+        self.model = UNet(num_classes=8, num_downs=4)
 
         if torch.cuda.device_count() > 1:
             print("Let's use", torch.cuda.device_count(), "GPUs!")
@@ -194,8 +194,8 @@ class FCNExperiment(PytorchExperiment):
                 file_dir = data_batch['fnames']  # 8*tuple (a,)
 
                 pred = self.model(data)
-                # pred_softmax = F.softmax(pred, dim=1)  # We calculate a softmax, because our SoftDiceLoss expects that as an input. The CE-Loss does the softmax internally.
-                # pred_image = torch.argmax(pred_softmax, dim=1)
+                pred_softmax = F.softmax(pred, dim=1)  # We calculate a softmax, because our SoftDiceLoss expects that as an input. The CE-Loss does the softmax internally.
+                pred_image = torch.argmax(pred_softmax, dim=1)
 
                 for k in range(self.config.batch_size):
                     # save the results
@@ -203,12 +203,12 @@ class FCNExperiment(PytorchExperiment):
                     filename = file_dir[k][0]
                     output_dir = os.path.join(segmented_dir, 'segmented_' + filename)
 
-                    if os.path.exists(output_dir + '.npy'):
-                        all_image = np.load(output_dir + '.npy')
-                        output = pred[k]
+                    if os.path.exists(output_dir):
+                        all_image = np.load(output_dir)
+                        output = pred_image[k, None]
                         all_image = np.concatenate((all_image, output), axis=0)
                     else:
-                        all_image = pred[k]
+                        all_image = pred_image[k, None]
 
                     print(output_dir)
                     np.save(output_dir, all_image)

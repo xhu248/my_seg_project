@@ -4,7 +4,7 @@ import shutil
 import os
 
 settings.disable_validate_slice_increment()
-orig_folder = '/home/xinrong/tmp/tapvc_all_data'
+orig_folder = '/home/xinrong/tmp/19-11-22-tapvc+2'
 folder = 'echo speed -1'
 l = os.path.join
 
@@ -24,7 +24,7 @@ for f in os.listdir(orig_folder):
 
 """
 
-subdir = [(l(folder, i), i) for i in os.listdir(folder)]
+subdir = [(l(orig_folder, i), i) for i in os.listdir(orig_folder)]
 
 for dic_dir in subdir:
     output_file = os.path.join(images_folder, dic_dir[1] + '.nii.gz')
