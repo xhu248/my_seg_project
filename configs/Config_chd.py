@@ -30,7 +30,7 @@ def get_config():
         # Train parameters
         num_classes=2,
         in_channels=1,
-        batch_size=8,
+        batch_size=4,
         patch_size=64,
         n_epochs=50,
         learning_rate=0.0005,
@@ -58,7 +58,8 @@ def get_config():
         data_test_dir=os.path.join(data_root_dir, 'tapvc_dataset/preprocessed'),  # This is where your test data is stored
 
         split_dir=os.path.join(data_root_dir, 'tapvc_dataset'),  # This is where the 'splits.pkl' file is located, that holds your splits.
-        excel_dir=os.path.join(data_root_dir, 'tapvc_dataset/pvo_1.xlsx')
+        excel_dir=os.path.join(data_root_dir, 'tapvc_dataset/pvo_1.xlsx'),
+        seg_dir=os.path.join(data_root_dir, 'tapvc_dataset/segmented')
         # scaled_image_16_dir=os.path.join(data_root_dir, 'CHD_segmentation_dataset/scaled_to_16'),
         # scaled_image_32_dir=os.path.join(data_root_dir, 'CHD_segmentation_dataset/scaled_to_32'),
         # scaled_image_64_dir=os.path.join(data_root_dir, 'CHD_segmentation_dataset/scaled_to_64'),

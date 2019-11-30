@@ -12,6 +12,7 @@ from datasets.three_dim.NumpyDataLoader import NumpyDataSet
 from trixi.experiment.pytorchexperiment import PytorchExperiment
 
 from networks.ClassificationNN import ClassificationNN
+from networks.ClassificationNN import ClassificationUnet
 
 from loss_functions.dice_loss import SoftDiceLoss
 
@@ -48,6 +49,8 @@ class BinaryClassExperiment(PytorchExperiment):
         val_keys = splits[self.config.fold]['val']
         test_keys = splits[self.config.fold]['test']
 
+        val_keys = val_keys + test_keys
+
         self.device = torch.device(self.config.device if torch.cuda.is_available() else 'cpu')    #
 
         self.train_data_loader = NumpyDataSet(self.config.data_dir, target_size=(128, 128, 128), batch_size=self.config.batch_size,
@@ -56,7 +59,8 @@ class BinaryClassExperiment(PytorchExperiment):
                                             keys=val_keys, mode="val", do_reshuffle=True)
         self.test_data_loader = NumpyDataSet(self.config.data_dir, target_size=(128, 128, 128), batch_size=self.config.batch_size,
                                              keys=test_keys, mode="test", do_reshuffle=False)
-        self.model = ClassificationNN()
+        # self.model = ClassificationNN()
+        self.model = ClassificationUnet(initial_filter_size=64)
 
         if torch.cuda.device_count() > 1:
             print("Let's use", torch.cuda.device_count(), "GPUs!")
@@ -117,7 +121,8 @@ class BinaryClassExperiment(PytorchExperiment):
 
             # target = data_batch['seg'][0].long().to(self.device)
 
-            pred = self.model(data.squeeze()) # should be of size (N, 2)
+            pred = self.model(data)  # treating data as 3d image
+            # pred = self.model(data.squeeze()) # should be of size (N, 2)
 
             loss = self.ce_loss(pred, target.squeeze())
             # loss = self.dice_loss(pred_softmax, target.squeeze())
@@ -145,8 +150,10 @@ class BinaryClassExperiment(PytorchExperiment):
 
         data = None
         loss_list = []
+        total_num = 0
         num_pvo = 0
         correct_pvo = 0
+        false_alarm = 0
 
         with torch.no_grad():
             for data_batch in self.val_data_loader:
@@ -162,24 +169,25 @@ class BinaryClassExperiment(PytorchExperiment):
 
                 target = torch.FloatTensor(target).to(self.device).long()
 
-                pred = self.model(data.squeeze())
+                pred = self.model(data)
 
-                pred_softmax = F.softmax(pred)
+                pred_softmax = F.softmax(pred, dim=1)
                 pred_pvo = torch.argmax(pred_softmax, dim=1)
 
                 c = pred_pvo.mul(target)
 
+                total_num += sum(pred_pvo)
                 correct_pvo += sum(c)
                 num_pvo += sum(target)
-
 
                 loss = self.ce_loss(pred, target.squeeze())
                 loss_list.append(loss.item())
 
+        accuracy = correct_pvo.item() / num_pvo.item()
         assert data is not None, 'data is None. Please check if your dataloader works properly'
         self.scheduler.step(np.mean(loss_list))
 
-        self.elog.print('Epoch: %d Loss: %.4f Accuracy: %.4f' % (self._epoch_idx, np.mean(loss_list), correct_pvo/num_pvo))
+        self.elog.print('Epoch: %d Loss: %.4f Accuracy: %.4f NUmber of wrong pvo: %d' % (self._epoch_idx, np.mean(loss_list), accuracy, total_num - correct_pvo))
 
         self.add_result(value=np.mean(loss_list), name='Val_Loss', tag='Loss', counter=epoch+1)
 

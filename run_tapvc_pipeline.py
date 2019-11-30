@@ -32,9 +32,10 @@ import time
 
 
 def training():
-
-
     c = get_config()
+
+    # c.do_load_checkpoint = True
+    # c.checkpoint_dir = c.base_dir + '/20191126-121722_tapvc_experiment' + '/checkpoint/checkpoint_current'
 
     dataset_name = 'tapvc_dataset'
 
@@ -42,13 +43,13 @@ def training():
     if not exists(os.path.join(os.path.join(c.data_root_dir, dataset_name), 'preprocessed')):
         print('Preprocessing data. [STARTED]')
         preprocess_data(root_dir=os.path.join(c.data_root_dir, dataset_name))
-        create_splits(output_dir=c.split_dir, image_dir=c.data_dir)
+        create_splits(output_dir=c.split_dir, image_dir=c.data_dir, do_balancement=True)
         print('Preprocessing data. [DONE]')
     else:
         print('The data has already been preprocessed. It will not be preprocessed again. Delete the folder to enforce it.')
 
     # preprocess_data(root_dir=os.path.join(c.data_root_dir, dataset_name))
-    # create_splits(excel_path=c.excel_dir, output_dir=c.split_dir, image_dir=c.data_dir)
+    create_splits(excel_path=c.excel_dir, output_dir=c.split_dir, image_dir=c.data_dir, do_balancement=False)
 
     exp = BinaryClassExperiment(config=c, name='tapvc_experiment', n_epochs=c.n_epochs,
                         seed=42, append_rnd_to_name=c.append_rnd_string)   # visdomlogger_kwargs={"auto_start": c.start_visdom}
@@ -72,4 +73,4 @@ def testing():
 
 
 if __name__ == "__main__":
-    testing()
+    training()
