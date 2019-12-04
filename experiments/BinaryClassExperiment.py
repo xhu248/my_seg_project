@@ -13,6 +13,7 @@ from trixi.experiment.pytorchexperiment import PytorchExperiment
 
 from networks.ClassificationNN import ClassificationNN
 from networks.ClassificationNN import ClassificationUnet
+from networks.ClassificationRes import ClassificationVnet
 
 from loss_functions.dice_loss import SoftDiceLoss
 
@@ -60,7 +61,7 @@ class BinaryClassExperiment(PytorchExperiment):
         self.test_data_loader = NumpyDataSet(self.config.data_dir, target_size=(128, 128, 128), batch_size=self.config.batch_size,
                                              keys=test_keys, mode="test", do_reshuffle=False)
         # self.model = ClassificationNN()
-        self.model = ClassificationUnet(initial_filter_size=64)
+        self.model = ClassificationVnet(initial_filter_size=16, num_downs=4)
 
         if torch.cuda.device_count() > 1:
             print("Let's use", torch.cuda.device_count(), "GPUs!")
@@ -75,7 +76,7 @@ class BinaryClassExperiment(PytorchExperiment):
         self.dice_loss = SoftDiceLoss(batch_dice=True)  # Softmax für DICE Loss!
 
         # weight = torch.tensor([1, 30, 30]).float().to(self.device)
-        weight = torch.FloatTensor([1, 20]).to(self.device)
+        weight = torch.FloatTensor([1, 15]).to(self.device)
         self.ce_loss = torch.nn.CrossEntropyLoss(weight=weight)  # Kein Softmax für CE Loss -> ist in torch schon mit drin!
         # self.dice_pytorch = dice_pytorch(self.config.num_classes)
 
@@ -110,7 +111,7 @@ class BinaryClassExperiment(PytorchExperiment):
             # Desired shape = [b, c, w, h]
             # Move data and target to the GPU
             data = data_batch['data'][0].float().to(self.device)
-            tapvc_dict = load_excel(self.config.excel_dir)
+            tapvc_dict = load_excel(self.config.excel_dir, do_random=False)
             fname_list = data_batch['fnames']
             for fname in fname_list:
                 file = fname[0].split('preprocessed/')[1]
@@ -160,7 +161,7 @@ class BinaryClassExperiment(PytorchExperiment):
                 data = data_batch['data'][0].float().to(self.device)
 
                 target = []
-                tapvc_dict = load_excel(self.config.excel_dir)
+                tapvc_dict = load_excel(self.config.excel_dir, do_random=False)
                 fname_list = data_batch['fnames']
                 for fname in fname_list:
                     file = fname[0].split('preprocessed/')[1]
@@ -183,13 +184,16 @@ class BinaryClassExperiment(PytorchExperiment):
                 loss = self.ce_loss(pred, target.squeeze())
                 loss_list.append(loss.item())
 
+        wrong_pvo_num = total_num - correct_pvo
         accuracy = correct_pvo.item() / num_pvo.item()
         assert data is not None, 'data is None. Please check if your dataloader works properly'
         self.scheduler.step(np.mean(loss_list))
 
-        self.elog.print('Epoch: %d Loss: %.4f Accuracy: %.4f NUmber of wrong pvo: %d' % (self._epoch_idx, np.mean(loss_list), accuracy, total_num - correct_pvo))
+        self.elog.print('Epoch: %d Loss: %.4f Accuracy: %.4f NUmber of wrong pvo: %d' % (self._epoch_idx, np.mean(loss_list), accuracy, wrong_pvo_num))
 
         self.add_result(value=np.mean(loss_list), name='Val_Loss', tag='Loss', counter=epoch+1)
+        self.add_result(value=accuracy, name='val_accuracy', counter=epoch+1)
+        self.add_result(value=wrong_pvo_num.item(), name='val_fales', counter=epoch+1)
 
         # self.clog.show_image_grid(data.float(), name="data_val", normalize=True, scale_each=True, n_iter=epoch)
         # self.clog.show_image_grid(target.float(), name="mask_val", title="Mask", n_iter=epoch)

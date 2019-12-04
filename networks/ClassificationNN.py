@@ -12,7 +12,7 @@ class ClassificationNN(nn.Module):
         self.conv2 = nn.Conv2d(in_channels=256, out_channels=512, kernel_size=3, stride=2, padding=1)
         self.global_max = nn.MaxPool2d(kernel_size=64)
         self.global_avg = nn.AvgPool2d(kernel_size=64)
-        self.fc = nn.Linear(1024, num_classes)
+        # self.fc = nn.Linear(1024, num_classes)
 
     def forward(self, x):
         x = self.conv1(x)
@@ -20,10 +20,10 @@ class ClassificationNN(nn.Module):
         x1 = self.global_max(x)
         x2 = self.global_avg(x)
         x = torch.cat([x1, x2], 1)
-        x = torch.flatten(x, 1)
-        output = self.fc(x.squeeze())
+        # x = torch.flatten(x, 1)
+        # output = self.fc(x.squeeze())
 
-        return output
+        return x
 
 
 class ClassificationUnet(nn.Module):
@@ -41,7 +41,7 @@ class ClassificationUnet(nn.Module):
                                       kernel_size=kernel_size, submodule=block, norm_layer=norm_layer)
 
         block = DownsamplingBlock(in_channels=in_channels, out_channels=initial_filter_size,
-                                             kernel_size=kernel_size, submodule=block, norm_layer=norm_layer, outermost=True)
+                                             kernel_size=kernel_size, submodule=block, norm_layer=norm_layer)
 
         self.model = block
         self.fc = nn.Linear(initial_filter_size * 2 ** (num_downs+1), num_classes)
@@ -65,7 +65,7 @@ class ClassificationUnet(nn.Module):
 
 # half part of unet, the extraction path without skipping connection
 class DownsamplingBlock(nn.Module):
-    def __init__(self, in_channels=None, out_channels=None, kernel_size=3, submodule=None, outermost=False, norm_layer=nn.InstanceNorm3d):
+    def __init__(self, in_channels=None, out_channels=None, kernel_size=3, submodule=None, norm_layer=nn.InstanceNorm3d):
         super(DownsamplingBlock, self).__init__()
 
         pool = nn.MaxPool3d(2, stride=2)
@@ -73,14 +73,11 @@ class DownsamplingBlock(nn.Module):
                               norm_layer=norm_layer)
         conv2 = self.contract(in_channels=out_channels, out_channels=out_channels, kernel_size=kernel_size,
                               norm_layer=norm_layer)
-        if outermost:
+        if submodule is None:
             down = [conv1, conv2]
-            model = down + [submodule]
-        elif submodule is None:
-            down = [pool, conv1, conv2]
             model = down
         else:
-            down = [pool, conv1, conv2]
+            down = [conv1, conv2, pool]
             model = down + [submodule]
 
         self.model = nn.Sequential(*model)
@@ -95,11 +92,3 @@ class DownsamplingBlock(nn.Module):
 
     def forward(self, x):
         return self.model(x)
-
-
-
-
-
-
-
-

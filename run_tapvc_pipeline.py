@@ -49,7 +49,7 @@ def training():
         print('The data has already been preprocessed. It will not be preprocessed again. Delete the folder to enforce it.')
 
     # preprocess_data(root_dir=os.path.join(c.data_root_dir, dataset_name))
-    create_splits(excel_path=c.excel_dir, output_dir=c.split_dir, image_dir=c.data_dir, do_balancement=False)
+    create_splits(excel_path=c.excel_dir, output_dir=c.split_dir, image_dir=c.data_dir, do_balancement=True)
 
     exp = BinaryClassExperiment(config=c, name='tapvc_experiment', n_epochs=c.n_epochs,
                         seed=42, append_rnd_to_name=c.append_rnd_string)   # visdomlogger_kwargs={"auto_start": c.start_visdom}
