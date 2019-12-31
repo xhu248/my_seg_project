@@ -3,6 +3,7 @@
 import pandas as pd
 import os
 import numpy as np
+import json
 
 
 def load_excel(excel_path, do_random=False):
@@ -26,4 +27,15 @@ def load_excel(excel_path, do_random=False):
             file_name = str(new_number[k]) + '.npy'
             tapvc_dict[file_name] = random_pvo[k]
 
+    with open('tapvc_dict.json', 'w') as f:
+        json.dump(tapvc_dict, f)
+        print('save dict to json')
+
     return tapvc_dict
+
+
+if __name__ == "__main__":
+
+    excel_path = '/home/xinrong/tmp/tapvc_project_3/data/tapvc_dataset/pvo_1.xlsx'
+    load_excel(excel_path)
+
