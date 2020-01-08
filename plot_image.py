@@ -54,31 +54,40 @@ if __name__ == '__main__':
     plt.savefig(os.path.join(pred_dir, 'images') + '/_006_25.jpg')
     plt.show()
     """
-    n = 1
+    n = 0
     k = 60
-    org_files = subfiles(c.data_dir, suffix='.npy', join=False)
-    seg_files = subfiles(c.seg_dir, suffix='.npy', join=False)
+    chd_files = subfiles(os.path.join(c.data_root_dir, 'CHD_segmentation_dataset/preprocessed'),
+                         suffix='.npy', join=True)
+    org_files = subfiles(c.data_dir, suffix='.npy', join=True)
+    seg_files = subfiles(c.seg_dir, suffix='.npy', join=True)
 
     ############ original image and target ########################
     file = org_files[n]
     seg_file = seg_files[n]
-    data = np.load(os.path.join(c.data_dir, file))
-    seg_data = np.load(os.path.join(c.seg_dir, seg_file))
+    chd_file = chd_files[n]
+    data = np.load(file)
+    seg_data = np.load(seg_file)
+    chd_data = np.load(chd_file)
     print(data.max())
+    print(chd_data.max())
     print(seg_data.max())
     image = data[:, :, k]
     seg_image = seg_data[:, :, k]
+    chd_image = chd_data[1, :, :, k]
 
 
     ############ down scale using interpolation ########################
     
     plt.figure(1)
-    plt.subplot(2, 2, 1)
+    plt.subplot(1, 3, 1)
     plt.title('image:%d,  slice:%d, original image' % (n, k))
     plt.imshow(image, cmap='gray')
-    plt.subplot(2, 2, 2)
+    plt.subplot(1, 3, 2)
     plt.title('image:%d,  slice:%d, after segmentation' % (n, k))
     plt.imshow(seg_image, cmap='gray')
+    plt.subplot(1, 3, 3)
+    plt.title('image:%d,  slice:%d, chd image' % (n, k))
+    plt.imshow(chd_data, cmap='gray')
     plt.show()
 
 """
