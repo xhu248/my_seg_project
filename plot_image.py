@@ -5,7 +5,7 @@ import os
 import numpy as np
 import torch
 import torch.nn.functional as F
-from configs.Config_chd import get_config
+from configs.Config_tapvc import get_config
 from utilities.file_and_folder_operations import subfiles
 
 if __name__ == '__main__':
@@ -55,7 +55,7 @@ if __name__ == '__main__':
     plt.show()
     """
     n = 0
-    k = 60
+    k = 20
     chd_files = subfiles(os.path.join(c.data_root_dir, 'CHD_segmentation_dataset/preprocessed'),
                          suffix='.npy', join=True)
     org_files = subfiles(c.data_dir, suffix='.npy', join=True)
@@ -73,21 +73,21 @@ if __name__ == '__main__':
     print(seg_data.max())
     image = data[:, :, k]
     seg_image = seg_data[:, :, k]
-    chd_image = chd_data[1, :, :, k]
+    chd_image = chd_data[k, 0]
 
 
     ############ down scale using interpolation ########################
     
     plt.figure(1)
-    plt.subplot(1, 3, 1)
+    plt.subplot(2, 2, 1)
     plt.title('image:%d,  slice:%d, original image' % (n, k))
     plt.imshow(image, cmap='gray')
-    plt.subplot(1, 3, 2)
+    plt.subplot(2, 2, 2)
     plt.title('image:%d,  slice:%d, after segmentation' % (n, k))
     plt.imshow(seg_image, cmap='gray')
-    plt.subplot(1, 3, 3)
+    plt.subplot(2, 2, 3)
     plt.title('image:%d,  slice:%d, chd image' % (n, k))
-    plt.imshow(chd_data, cmap='gray')
+    plt.imshow(chd_image, cmap='gray')
     plt.show()
 
 """

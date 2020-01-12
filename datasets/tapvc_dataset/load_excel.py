@@ -19,7 +19,7 @@ def load_excel(excel_path, do_random=False):
     if not do_random:
         for k in range(length):
             file_name = str(new_number[k]) + '.npy'
-            tapvc_dict[file_name] = pvo[k]
+            tapvc_dict[file_name] = int(pvo[k])
     else:
         random_pvo = np.concatenate((np.ones(pvo_number), np.zeros(length - pvo_number)))
         np.random.shuffle(random_pvo)

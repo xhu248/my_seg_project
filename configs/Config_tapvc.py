@@ -34,7 +34,7 @@ def get_config():
         patch_size=64,
         n_epochs=50,
         learning_rate=0.0005,
-        fold=0,  # The 'splits.pkl' may contain multiple folds. Here we choose which one we want to use.
+        fold=1,  # The 'splits.pkl' may contain multiple folds. Here we choose which one we want to use.
 
         device="cuda",  # 'cuda' is the default CUDA device, you can use also 'cpu'. For more information, see https://pytorch.org/docs/stable/notes/cuda.html
 
@@ -58,7 +58,7 @@ def get_config():
         data_test_dir=os.path.join(data_root_dir, 'tapvc_dataset/preprocessed'),  # This is where your test data is stored
 
         split_dir=os.path.join(data_root_dir, 'tapvc_dataset'),  # This is where the 'splits.pkl' file is located, that holds your splits.
-        excel_dir=os.path.join(data_root_dir, 'tapvc_dataset/pvo_1.xlsx'),
+        excel_dir=os.path.join(data_root_dir, 'tapvc_dataset/pvo_classification.xlsx'),
         seg_dir=os.path.join(data_root_dir, 'tapvc_dataset/segmented')
         # scaled_image_16_dir=os.path.join(data_root_dir, 'CHD_segmentation_dataset/scaled_to_16'),
         # scaled_image_32_dir=os.path.join(data_root_dir, 'CHD_segmentation_dataset/scaled_to_32'),

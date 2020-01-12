@@ -1,6 +1,7 @@
 import pickle
 from utilities.file_and_folder_operations import subfiles
-from datasets.chd_dataset.load_excel import load_excel
+from datasets.tapvc_dataset.load_excel import load_excel
+from sklearn.model_selection import KFold
 
 import os
 import numpy as np
@@ -68,6 +69,7 @@ def create_splits(excel_path, output_dir, image_dir, do_balancement=False):
             negative_set.remove(patient)
             testset.append(patient[:-4])
         split_dict = dict()
+        split_dict['all'] = get_number_from_file_list(pvo_list) + get_number_from_file_list(non_pvo_list)
         split_dict['train'] = trainset
         split_dict['val'] = valset
         split_dict['test'] = testset
@@ -77,4 +79,12 @@ def create_splits(excel_path, output_dir, image_dir, do_balancement=False):
     with open(os.path.join(output_dir, 'splits.pkl'), 'wb') as f:
         pickle.dump(splits, f)
 
+
+def get_number_from_file_list(file_list):
+    number_list = []
+    for file in file_list:
+        number = file.split(".")[0]
+        number_list.append(number)
+
+    return number_list
 # divide the processed .npy data into three parts, and do it four times

@@ -1,5 +1,6 @@
 import os
 import pickle
+import csv
 
 import numpy as np
 import torch
@@ -17,7 +18,7 @@ from networks.ClassificationRes import ClassificationVnet
 
 from loss_functions.dice_loss import SoftDiceLoss
 
-from datasets.chd_dataset.load_excel import load_excel
+from datasets.tapvc_dataset.load_excel import load_excel
 
 
 
@@ -49,6 +50,7 @@ class BinaryClassExperiment(PytorchExperiment):
         tr_keys = splits[self.config.fold]['train']
         val_keys = splits[self.config.fold]['val']
         test_keys = splits[self.config.fold]['test']
+        all_keys = splits[self.config.fold]['all']
 
         val_keys = val_keys + test_keys
 
@@ -58,10 +60,10 @@ class BinaryClassExperiment(PytorchExperiment):
                                               keys=tr_keys, do_reshuffle=True)
         self.val_data_loader = NumpyDataSet(self.config.data_dir, target_size=(128, 128, 128), batch_size=self.config.batch_size,
                                             keys=val_keys, mode="val", do_reshuffle=True)
-        self.test_data_loader = NumpyDataSet(self.config.data_dir, target_size=(128, 128, 128), batch_size=self.config.batch_size,
-                                             keys=test_keys, mode="test", do_reshuffle=False)
+        self.test_data_loader = NumpyDataSet(self.config.data_dir, target_size=(128, 128, 128), batch_size=1,
+                                             keys=all_keys, mode="test", do_reshuffle=False)
         # self.model = ClassificationNN()
-        self.model = ClassificationVnet(initial_filter_size=16, num_downs=4)
+        self.model = ClassificationUnet(initial_filter_size=32, num_downs=3)
 
         if torch.cuda.device_count() > 1:
             print("Let's use", torch.cuda.device_count(), "GPUs!")
@@ -75,7 +77,6 @@ class BinaryClassExperiment(PytorchExperiment):
         # This proved good in the medical segmentation decathlon.
         self.dice_loss = SoftDiceLoss(batch_dice=True)  # Softmax für DICE Loss!
 
-        # weight = torch.tensor([1, 30, 30]).float().to(self.device)
         weight = torch.FloatTensor([1, 15]).to(self.device)
         self.ce_loss = torch.nn.CrossEntropyLoss(weight=weight)  # Kein Softmax für CE Loss -> ist in torch schon mit drin!
         # self.dice_pytorch = dice_pytorch(self.config.num_classes)
@@ -101,6 +102,8 @@ class BinaryClassExperiment(PytorchExperiment):
 
         data = None
         batch_counter = 0
+
+        tapvc_dict = load_excel(self.config.excel_dir, do_random=False)
         for data_batch in self.train_data_loader:
 
             self.optimizer.zero_grad()
@@ -111,7 +114,6 @@ class BinaryClassExperiment(PytorchExperiment):
             # Desired shape = [b, c, w, h]
             # Move data and target to the GPU
             data = data_batch['data'][0].float().to(self.device)
-            tapvc_dict = load_excel(self.config.excel_dir, do_random=False)
             fname_list = data_batch['fnames']
             for fname in fname_list:
                 file = fname[0].split('preprocessed/')[1]
@@ -122,7 +124,7 @@ class BinaryClassExperiment(PytorchExperiment):
 
             # target = data_batch['seg'][0].long().to(self.device)
 
-            pred = self.model(data)  # treating data as 3d image
+            _, pred = self.model(data)  # treating data as 3d image
             # pred = self.model(data.squeeze()) # should be of size (N, 2)
 
             loss = self.ce_loss(pred, target.squeeze())
@@ -149,6 +151,7 @@ class BinaryClassExperiment(PytorchExperiment):
         self.elog.print('VALIDATE')
         self.model.eval()
 
+        tapvc_dict = load_excel(self.config.excel_dir, do_random=False)
         data = None
         loss_list = []
         total_num = 0
@@ -161,7 +164,6 @@ class BinaryClassExperiment(PytorchExperiment):
                 data = data_batch['data'][0].float().to(self.device)
 
                 target = []
-                tapvc_dict = load_excel(self.config.excel_dir, do_random=False)
                 fname_list = data_batch['fnames']
                 for fname in fname_list:
                     file = fname[0].split('preprocessed/')[1]
@@ -170,7 +172,7 @@ class BinaryClassExperiment(PytorchExperiment):
 
                 target = torch.FloatTensor(target).to(self.device).long()
 
-                pred = self.model(data)
+                features, pred = self.model(data)
 
                 pred_softmax = F.softmax(pred, dim=1)
                 pred_pvo = torch.argmax(pred_softmax, dim=1)
@@ -201,45 +203,61 @@ class BinaryClassExperiment(PytorchExperiment):
         # self.clog.show_image_grid(pred.data.cpu()[:, 1:2, ], name="unt_val", normalize=True, scale_each=True, n_iter=epoch)
 
     def test(self):
-
         self.model.eval()
         data = None
 
-        num_of_parameters = sum(p.numel() for p in self.model.parameters() if p.requires_grad)
-        print("number of parameters:", num_of_parameters)
+        tapvc_dict = load_excel(self.config.excel_dir, do_random=False)
 
-        segmented_dir = os.path.join(self.config.split_dir, 'segmented')
-        if not os.path.exists(segmented_dir):
-            os.mkdir(segmented_dir)
+        feature_dict = {}
+        correct_list = []
+        total_num = 0
+        correct_pvo = 0
+        wrong_pvo = 0
+        total_pvo  = 0
 
         with torch.no_grad():
             for data_batch in self.test_data_loader:
                 data = data_batch['data'][0].float().to(self.device) # shape(N, 1, d, d, d)
-                file_dir = data_batch['fnames']  # 8*tuple (a,)
+                fname_list = data_batch['fnames']  # 8*tuple (a,)
 
-                pred = self.model(data.squeeze())
-                # pred_softmax = F.softmax(pred, dim=1)  # We calculate a softmax, because our SoftDiceLoss expects that as an input. The CE-Loss does the softmax internally.
+                fname = fname_list[0][0].split('preprocessed/')[1]
+                assert fname in tapvc_dict, 'number of .npy is not in pvo excel'
+                target = tapvc_dict[fname]
+
+                features, pred = self.model(data)
+                pred_softmax = F.softmax(pred, dim=1)  # We calculate a softmax, because our SoftDiceLoss expects that as an input. The CE-Loss does the softmax internally.
                 # pred_image = torch.argmax(pred_softmax, dim=1)
 
-                for k in range(self.config.batch_size):
-                    # save the results
-                    # pred = pred_softmax[k].reshape((3,64,64))
-                    filename = file_dir[k][0]
-                    output_dir = os.path.join(segmented_dir, 'segmented_' + filename)
+                pred_softmax = F.softmax(pred, dim=1)
+                pred_pvo = torch.argmax(pred_softmax, dim=1)
 
-                    if os.path.exists(output_dir + '.npy'):
-                        all_image = np.load(output_dir + '.npy')
-                        output = pred[k]
-                        all_image = np.concatenate((all_image, output), axis=0)
+                if pred_pvo == 1:
+                    if target == 1:
+                        correct_pvo += 1
+                        correct_list.append(fname)
                     else:
-                        all_image = pred[k]
+                        wrong_pvo += 1
 
-                    print(output_dir)
-                    np.save(output_dir, all_image)
-                #    saveName = filenames[k]
+                if target == 1:
+                    total_pvo += 1
+
+                total_num += 1
+
+                new_num = fname.split('.')[0]
+                features = features.squeeze()
+                features = features.cpu().numpy()
+                features = list(features)
+                feature_dict[new_num] = features
+                print("Patient's new number:", new_num)
+                print("pvo ground truth: %d, pvo prediction: %d" % (target, pred_pvo))
+
+        with open("feature_dict.pkl", 'wb') as f:
+            pickle.dump(feature_dict, f)
 
 
-            print('test_data loading finished')
+        print('Number of patients: %d, total_pvo: %d, correct_pvo: %d, wrong_pvo: %d' %
+              (total_num, total_pvo, correct_pvo, wrong_pvo))
+        print(correct_list)
 
         assert data is not None, 'data is None. Please check if your dataloader works properly'
 

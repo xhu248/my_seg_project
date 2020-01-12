@@ -19,13 +19,12 @@ import os
 import torch
 from os.path import exists
 
-from configs.Config_chd import get_config
-from datasets.chd_dataset.preprocessing import preprocess_data
-from datasets.chd_dataset.create_splits import create_splits
+from configs.Config_tapvc import get_config
+from datasets.tapvc_dataset.preprocessing import preprocess_data
+from datasets.tapvc_dataset.create_splits import create_splits
 from experiments.FCNExperiment import FCNExperiment
 from experiments.BinaryClassExperiment import BinaryClassExperiment
-from experiments.ChdExperiment import CHDExperiment
-from datasets.downsanpling_data import downsampling_image
+
 
 import datetime
 import time
@@ -49,7 +48,7 @@ def training():
         print('The data has already been preprocessed. It will not be preprocessed again. Delete the folder to enforce it.')
 
     # preprocess_data(root_dir=os.path.join(c.data_root_dir, dataset_name))
-    create_splits(excel_path=c.excel_dir, output_dir=c.split_dir, image_dir=c.data_dir, do_balancement=True)
+    # create_splits(excel_path=c.excel_dir, output_dir=c.split_dir, image_dir=c.data_dir, do_balancement=True)
 
     exp = BinaryClassExperiment(config=c, name='tapvc_experiment', n_epochs=c.n_epochs,
                         seed=42, append_rnd_to_name=c.append_rnd_string)   # visdomlogger_kwargs={"auto_start": c.start_visdom}
@@ -61,16 +60,16 @@ def testing():
 
     c = get_config()
 
-    c.do_load_checkpoint = True
-    #c.checkpoint_dir = c.base_dir + '/20190424-020641_unet_experiment' + '/checkpoint/checkpoint_current' # dice_cost train
-    # c.checkpoint_dir = c.base_dir + '/20190424-234657_unet_experiment' + '/checkpoint/checkpoint_last' # SDG
-    c.checkpoint_dir = c.base_dir + '/20191108-115239_chd_experiment' + '/checkpoint/checkpoint_current'
+    # create_splits(excel_path=c.excel_dir, output_dir=c.split_dir, image_dir=c.data_dir, do_balancement=True)
 
-    exp = FCNExperiment(config=c, name='tapvc', n_epochs=c.n_epochs,
+    c.do_load_checkpoint = True
+    c.checkpoint_dir = c.base_dir + '/20200113-002033_tapvc_experiment' + '/checkpoint/checkpoint_current'
+
+    exp = BinaryClassExperiment(config=c, name='tapvc_test', n_epochs=c.n_epochs,
                                seed=42, globs=globals())
     exp.run_test(setup=True)
 
 
 
 if __name__ == "__main__":
-    training()
+    testing()

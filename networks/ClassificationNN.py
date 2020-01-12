@@ -58,9 +58,9 @@ class ClassificationUnet(nn.Module):
         x = self.model(x)
         x = self.pooling(x, in_channels=x.size()[1], kernel_size=x.size()[2])
 
-        x = self.fc(x)
+        y = self.fc(x)
 
-        return x
+        return x, y
 
 
 # half part of unet, the extraction path without skipping connection
