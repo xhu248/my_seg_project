@@ -20,6 +20,8 @@ from loss_functions.dice_loss import SoftDiceLoss
 
 from datasets.tapvc_dataset.load_excel import load_excel
 
+from utilities.metrics import print_metrices_out
+
 
 
 class BinaryClassExperiment(PytorchExperiment):
@@ -61,7 +63,7 @@ class BinaryClassExperiment(PytorchExperiment):
         self.val_data_loader = NumpyDataSet(self.config.data_dir, target_size=(128, 128, 128), batch_size=self.config.batch_size,
                                             keys=val_keys, mode="val", do_reshuffle=True)
         self.test_data_loader = NumpyDataSet(self.config.data_dir, target_size=(128, 128, 128), batch_size=1,
-                                             keys=all_keys, mode="test", do_reshuffle=False)
+                                             keys=val_keys, mode="test", do_reshuffle=False)
         # self.model = ClassificationNN()
         self.model = ClassificationUnet(initial_filter_size=32, num_downs=3)
 
@@ -77,7 +79,7 @@ class BinaryClassExperiment(PytorchExperiment):
         # This proved good in the medical segmentation decathlon.
         self.dice_loss = SoftDiceLoss(batch_dice=True)  # Softmax für DICE Loss!
 
-        weight = torch.FloatTensor([1, 15]).to(self.device)
+        weight = torch.FloatTensor([1, 20]).to(self.device)
         self.ce_loss = torch.nn.CrossEntropyLoss(weight=weight)  # Kein Softmax für CE Loss -> ist in torch schon mit drin!
         # self.dice_pytorch = dice_pytorch(self.config.num_classes)
 
@@ -210,10 +212,11 @@ class BinaryClassExperiment(PytorchExperiment):
 
         feature_dict = {}
         correct_list = []
-        total_num = 0
-        correct_pvo = 0
-        wrong_pvo = 0
-        total_pvo  = 0
+
+        # y_predict,  y_test and y_prob are used to print metrics
+        y_predict = []
+        y_test = []
+        y_prob = []
 
         with torch.no_grad():
             for data_batch in self.test_data_loader:
@@ -231,32 +234,30 @@ class BinaryClassExperiment(PytorchExperiment):
                 pred_softmax = F.softmax(pred, dim=1)
                 pred_pvo = torch.argmax(pred_softmax, dim=1)
 
-                if pred_pvo == 1:
-                    if target == 1:
-                        correct_pvo += 1
+                y_predict.append(pred_pvo.cpu().numpy())
+                y_test.append(target)
+                y_prob.append(pred_softmax[0][1].cpu().numpy())
+
+                if pred_pvo == 1 and target == 1:
                         correct_list.append(fname)
-                    else:
-                        wrong_pvo += 1
 
-                if target == 1:
-                    total_pvo += 1
-
-                total_num += 1
-
+                # store features
                 new_num = fname.split('.')[0]
                 features = features.squeeze()
                 features = features.cpu().numpy()
                 features = list(features)
                 feature_dict[new_num] = features
+
                 print("Patient's new number:", new_num)
                 print("pvo ground truth: %d, pvo prediction: %d" % (target, pred_pvo))
 
         with open("feature_dict.pkl", 'wb') as f:
             pickle.dump(feature_dict, f)
 
-
-        print('Number of patients: %d, total_pvo: %d, correct_pvo: %d, wrong_pvo: %d' %
-              (total_num, total_pvo, correct_pvo, wrong_pvo))
+        y_predict = np.array(y_predict)
+        y_test = np.array(y_test)
+        y_prob = np.array(y_prob)
+        print_metrices_out(y_predict, y_test, y_prob)
         print(correct_list)
 
         assert data is not None, 'data is None. Please check if your dataloader works properly'

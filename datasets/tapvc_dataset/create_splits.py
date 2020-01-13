@@ -26,9 +26,9 @@ def create_splits(excel_path, output_dir, image_dir, do_balancement=False):
     trainset_negative_size = len(pvo_list) - valset_negative_size - testset_negative_size
 
     if do_balancement:
-        trainset_positive_size = trainset_negative_size * 5
-        valset_positive_size = valset_negative_size * 5
-        testset_positive_size = testset_negative_size * 5
+        trainset_positive_size = trainset_negative_size * 7
+        valset_positive_size = valset_negative_size * 7
+        testset_positive_size = testset_negative_size * 7
     else:
         valset_positive_size = len(non_pvo_list) * 25 // 100
         testset_positive_size = len(non_pvo_list) * 25 // 100

@@ -55,10 +55,11 @@ if __name__ == '__main__':
     plt.show()
     """
     n = 0
-    k = 20
+    k = 100
     chd_files = subfiles(os.path.join(c.data_root_dir, 'CHD_segmentation_dataset/preprocessed'),
                          suffix='.npy', join=True)
-    org_files = subfiles(c.data_dir, suffix='.npy', join=True)
+    org_files = subfiles(os.path.join(c.data_root_dir, 'tapvc_dataset/original_npy'),
+                         suffix='.npy', join=True)
     seg_files = subfiles(c.seg_dir, suffix='.npy', join=True)
 
     ############ original image and target ########################
@@ -74,6 +75,7 @@ if __name__ == '__main__':
     image = data[:, :, k]
     seg_image = seg_data[:, :, k]
     chd_image = chd_data[k, 0]
+    chd_label = chd_data[k, 1]
 
 
     ############ down scale using interpolation ########################
@@ -88,6 +90,9 @@ if __name__ == '__main__':
     plt.subplot(2, 2, 3)
     plt.title('image:%d,  slice:%d, chd image' % (n, k))
     plt.imshow(chd_image, cmap='gray')
+    plt.subplot(2, 2, 4)
+    plt.title('image:%d,  slice:%d, chd label' % (n, k))
+    plt.imshow(chd_label, cmap='gray')
     plt.show()
 
 """
