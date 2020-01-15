@@ -55,10 +55,10 @@ if __name__ == '__main__':
     plt.show()
     """
     n = 0
-    k = 100
+    k = 10
     chd_files = subfiles(os.path.join(c.data_root_dir, 'CHD_segmentation_dataset/preprocessed'),
                          suffix='.npy', join=True)
-    org_files = subfiles(os.path.join(c.data_root_dir, 'tapvc_dataset/original_npy'),
+    org_files = subfiles(os.path.join(c.data_root_dir, 'tapvc_dataset/preprocessed'),
                          suffix='.npy', join=True)
     seg_files = subfiles(c.seg_dir, suffix='.npy', join=True)
 

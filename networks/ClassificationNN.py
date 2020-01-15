@@ -27,7 +27,7 @@ class ClassificationNN(nn.Module):
 
 
 class ClassificationUnet(nn.Module):
-    def __init__(self, num_classes=2, in_channels=1, initial_filter_size=64, kernel_size=3, num_downs=3, norm_layer=nn.InstanceNorm3d):
+    def __init__(self, num_classes=2, in_channels=1, initial_filter_size=64, kernel_size=3, num_downs=3, norm_layer=nn.InstanceNorm3d, external_features_num=11):
         super(ClassificationUnet, self).__init__()
 
         self.num_classes = num_classes
@@ -44,7 +44,7 @@ class ClassificationUnet(nn.Module):
                                              kernel_size=kernel_size, submodule=block, norm_layer=norm_layer)
 
         self.model = block
-        self.fc = nn.Linear(initial_filter_size * 2 ** (num_downs+1), num_classes)
+        self.fc = nn.Linear(initial_filter_size * 2 ** (num_downs+1)+external_features_num, num_classes)
 
     @staticmethod
     def pooling(layer, in_channels=None, kernel_size=None):
@@ -55,9 +55,12 @@ class ClassificationUnet(nn.Module):
         return layer
 
     def forward(self, x):
-        x = self.model(x)
+        x1 = x[0]
+        x2 = x[1]
+        x = self.model(x1)
         x = self.pooling(x, in_channels=x.size()[1], kernel_size=x.size()[2])
 
+        x = torch.cat([x, x2], 1)
         y = self.fc(x)
 
         return x, y

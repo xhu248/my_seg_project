@@ -59,13 +59,8 @@ def get_config():
 
         split_dir=os.path.join(data_root_dir, 'tapvc_dataset'),  # This is where the 'splits.pkl' file is located, that holds your splits.
         excel_dir=os.path.join(data_root_dir, 'tapvc_dataset/pvo_classification.xlsx'),
-        seg_dir=os.path.join(data_root_dir, 'tapvc_dataset/segmented')
-        # scaled_image_16_dir=os.path.join(data_root_dir, 'CHD_segmentation_dataset/scaled_to_16'),
-        # scaled_image_32_dir=os.path.join(data_root_dir, 'CHD_segmentation_dataset/scaled_to_32'),
-        # scaled_image_64_dir=os.path.join(data_root_dir, 'CHD_segmentation_dataset/scaled_to_64'),
-        # stage_1_dir=os.path.join(data_root_dir, 'CHD_segmentation_dataset/stage_1'),
-        # stage_1_dir_32 = os.path.join(data_root_dir, 'CHD_segmentation_dataset/stage_1_32'),
-        # stage_1_dir = os.path.join(data_root_dir, 'CHD_segmentation_dataset/stage_1')
+        seg_dir=os.path.join(data_root_dir, 'tapvc_dataset/segmented'),
+        external_features_path=os.path.join(data_root_dir, 'tapvc_dataset/external_features_dict.pkl')
 
     )
 
