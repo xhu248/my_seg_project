@@ -10,21 +10,9 @@ from utilities.file_and_folder_operations import subfiles
 
 if __name__ == '__main__':
     c = get_config()
-    """ 
-    data_dir = c.data_dir
-    image_num = '1016'
-    scaled_image_dir = os.path.join(c.data_dir, 'scaled_to_16')
-    scaled_image = os.path.join(c.data_dir, 'ct_1083_image.npy')
 
-    train_image = np.load(scaled_image)
-    label_image = np.load(scaled_image)[:, 1]
-
-    max_value = label_image.max()
-    plt.imshow(train_image[12], cmap='gray')
-    plt.show()
-    plt.imshow(val_image[12], cmap='gray')
-    plt.show()
-    
+    base_dir =os.path.join(c.data_root_dir, 'CHD_segmentation_dataset')
+    original_image = os.path.join(base_dir, "preprocessed/")
     pred_dir = os.path.join(c.base_dir, c.dataset_name
                                              + '_' + str(
         c.batch_size) + c.cross_vali_result_all_dir + '_20190425-213808')
@@ -53,7 +41,8 @@ if __name__ == '__main__':
 
     plt.savefig(os.path.join(pred_dir, 'images') + '/_006_25.jpg')
     plt.show()
-    """
+
+"""
     n = 0
     k = 10
     chd_files = subfiles(os.path.join(c.data_root_dir, 'CHD_segmentation_dataset/preprocessed'),
@@ -94,6 +83,8 @@ if __name__ == '__main__':
     plt.title('image:%d,  slice:%d, chd label' % (n, k))
     plt.imshow(chd_label, cmap='gray')
     plt.show()
+    
+"""
 
 """
     ############ down scale using max-pooling ########################

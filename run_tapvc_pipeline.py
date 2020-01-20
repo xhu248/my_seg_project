@@ -24,6 +24,7 @@ from datasets.tapvc_dataset.preprocessing import preprocess_data
 from datasets.tapvc_dataset.create_splits import create_splits
 from experiments.FCNExperiment import FCNExperiment
 from experiments.BinaryClassExperiment import BinaryClassExperiment
+# from experiments.CombClassExperiment import BinaryClassExperiment
 
 
 import datetime
@@ -63,7 +64,7 @@ def testing():
     # create_splits(excel_path=c.excel_dir, output_dir=c.split_dir, image_dir=c.data_dir, do_balancement=True)
 
     c.do_load_checkpoint = True
-    c.checkpoint_dir = c.base_dir + '/20200113-051502_tapvc_experiment' + '/checkpoint/checkpoint_current'
+    c.checkpoint_dir = c.base_dir + '/20200113-102201_tapvc_experiment' + '/checkpoint/checkpoint_current'
 
     exp = BinaryClassExperiment(config=c, name='tapvc_test', n_epochs=c.n_epochs,
                                seed=42, globs=globals())

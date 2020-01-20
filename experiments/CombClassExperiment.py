@@ -13,7 +13,7 @@ from datasets.three_dim.NumpyDataLoader import NumpyDataSet
 from trixi.experiment.pytorchexperiment import PytorchExperiment
 
 from networks.ClassificationNN import ClassificationNN
-from networks.ClassificationNN import ClassificationNet3D
+from networks.ClassificationNN import CombClassNet3D
 from networks.ClassificationRes import ClassificationVnet
 
 from loss_functions.dice_loss import SoftDiceLoss
@@ -65,7 +65,7 @@ class BinaryClassExperiment(PytorchExperiment):
         self.test_data_loader = NumpyDataSet(self.config.data_dir, target_size=(128, 128, 128), batch_size=1,
                                              keys=all_keys, mode="test", do_reshuffle=False)
         # self.model = ClassificationNN()
-        self.model = ClassificationNet3D(initial_filter_size=32, num_downs=3)
+        self.model = CombClassNet3D(initial_filter_size=32, num_downs=3, external_features_num=11)
 
         if torch.cuda.device_count() > 1:
             print("Let's use", torch.cuda.device_count(), "GPUs!")
@@ -74,11 +74,14 @@ class BinaryClassExperiment(PytorchExperiment):
 
         self.model.to(self.device)
 
+        with open(self.config.external_features_path, 'rb') as f:
+            self.external_features_dict = pickle.load(f)
+
         # We use a combination of DICE-loss and CE-Loss in this example.
         # This proved good in the medical segmentation decathlon.
         self.dice_loss = SoftDiceLoss(batch_dice=True)  # Softmax für DICE Loss!
 
-        weight = torch.FloatTensor([1, 15]).to(self.device)
+        weight = torch.FloatTensor([1, 25]).to(self.device)
         self.ce_loss = torch.nn.CrossEntropyLoss(weight=weight)  # Kein Softmax für CE Loss -> ist in torch schon mit drin!
         # self.dice_pytorch = dice_pytorch(self.config.num_classes)
 
@@ -110,15 +113,21 @@ class BinaryClassExperiment(PytorchExperiment):
             data = data_batch['data'][0].float().to(self.device)
 
             target = []
+            external_features = []
             fname_list = data_batch['fnames']
 
             for fname in fname_list:
                 file = fname[0].split('preprocessed/')[1]
                 assert file in tapvc_dict, 'number of .npy is not in pvo excel'
                 target.append(tapvc_dict[file])
-            target = torch.FloatTensor(target).to(self.device).long()
+                external_features.append(self.external_features_dict[file])
 
-            _, pred = self.model(data)  # treating data as 3d image
+            target = torch.FloatTensor(target).to(self.device).long()
+            external_features = torch.FloatTensor(external_features).to(self.device).float()
+
+            x = (data, external_features)
+
+            _, pred = self.model(x)  # treating data as 3d image
             # pred = self.model(data.squeeze()) # should be of size (N, 2)
 
             loss = self.ce_loss(pred, target.squeeze())
@@ -158,16 +167,20 @@ class BinaryClassExperiment(PytorchExperiment):
                 data = data_batch['data'][0].float().to(self.device)
 
                 target = []
+                external_features = []
                 fname_list = data_batch['fnames']
 
                 for fname in fname_list:
                     file = fname[0].split('preprocessed/')[1]
                     assert file in tapvc_dict, 'number of .npy is not in pvo excel'
                     target.append(tapvc_dict[file])
+                    external_features.append(self.external_features_dict[file])
 
                 target = torch.FloatTensor(target).to(self.device).long()
+                external_features = torch.FloatTensor(external_features).to(self.device).float()
 
-                features, pred = self.model(data)
+                x = (data, external_features)
+                features, pred = self.model(x)
 
                 pred_softmax = F.softmax(pred, dim=1)
                 pred_pvo = torch.argmax(pred_softmax, dim=1)
@@ -220,7 +233,11 @@ class BinaryClassExperiment(PytorchExperiment):
                 assert fname in tapvc_dict, 'number of .npy is not in pvo excel'
                 target = tapvc_dict[fname]
 
-                features, pred = self.model(data)
+                external_features = self.external_features_dict[fname]
+                external_features = torch.FloatTensor(external_features).to(self.device).float()
+
+                x = (data, external_features)
+                features, pred = self.model(x)
                 pred_softmax = F.softmax(pred, dim=1)  # We calculate a softmax, because our SoftDiceLoss expects that as an input. The CE-Loss does the softmax internally.
                 # pred_image = torch.argmax(pred_softmax, dim=1)
 
