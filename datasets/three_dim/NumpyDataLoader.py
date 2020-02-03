@@ -35,7 +35,7 @@ def load_dataset(base_dir, pattern='*.npy', keys=None):
         i = 0
         for filename in sorted(fnmatch.filter(files, pattern)):
             # this assures that only images of patients in excel are loaded
-            if keys is not None and filename[:-4] in keys:
+            if keys is not None and filename in keys:
                 npy_file = os.path.join(root, filename)
                 numpy_array = np.load(npy_file, mmap_mode="r+")
 

@@ -21,52 +21,51 @@ def create_splits(excel_path, output_dir, image_dir, do_balancement=False):
 
     print('Number of pvo: %d, Number of non_pvo: %d'%(len(pvo_list), len(non_pvo_list)))
 
-    valset_negative_size = len(pvo_list)*25 // 100
-    testset_negative_size = len(pvo_list)*25 // 100
-    trainset_negative_size = len(pvo_list) - valset_negative_size - testset_negative_size
+    valset_positive_size = len(pvo_list) * 25 // 100
+    testset_positive_size = len(pvo_list) * 25 // 100
+    trainset_positive_size = len(pvo_list) - valset_positive_size - testset_positive_size
 
+    valset_negative_size = len(non_pvo_list)*25 // 100
+    testset_negative_size = len(non_pvo_list)*25 // 100
     if do_balancement:
-        trainset_positive_size = trainset_negative_size * 7
-        valset_positive_size = valset_negative_size * 7
-        testset_positive_size = testset_negative_size * 7
+        trainset_negative_size = trainset_positive_size * 6
     else:
-        valset_positive_size = len(non_pvo_list) * 25 // 100
-        testset_positive_size = len(non_pvo_list) * 25 // 100
-        trainset_positive_size = len(non_pvo_list) - valset_positive_size - testset_positive_size
+        trainset_negative_size = len(non_pvo_list) - valset_negative_size - testset_negative_size
 
     splits = []
     for split in range(0, 5):
-        positive_set = non_pvo_list.copy()
-        negative_set = pvo_list.copy()
+        positive_set = pvo_list.copy()
+        negative_set = non_pvo_list.copy()
         trainset = []
         valset = []
         testset = []
         for i in range(0, trainset_positive_size):
             patient = np.random.choice(positive_set)
             positive_set.remove(patient)
-            trainset.append(patient[:-4])
+            trainset.append(patient)
         for i in range(0, trainset_negative_size):
             patient = np.random.choice(negative_set)
             negative_set.remove(patient)
-            trainset.append(patient[:-4])
+            trainset.append(patient)
 
         for i in range(0, valset_positive_size):
             patient = np.random.choice(positive_set)
             positive_set.remove(patient)
-            valset.append(patient[:-4])
+            valset.append(patient)
         for i in range(0, valset_negative_size):
             patient = np.random.choice(negative_set)
             negative_set.remove(patient)
-            valset.append(patient[:-4])
+            valset.append(patient)
 
         for i in range(0, testset_positive_size):
             patient = np.random.choice(positive_set)
             positive_set.remove(patient)
-            testset.append(patient[:-4])
+            testset.append(patient)
         for i in range(0, testset_negative_size):
             patient = np.random.choice(negative_set)
             negative_set.remove(patient)
-            testset.append(patient[:-4])
+            testset.append(patient)
+
         split_dict = dict()
         split_dict['all'] = get_number_from_file_list(pvo_list) + get_number_from_file_list(non_pvo_list)
         split_dict['train'] = trainset
