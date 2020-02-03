@@ -9,6 +9,7 @@ import json
 def load_excel(excel_path, do_random=False):
     df = pd.read_excel(excel_path)
     new_number = df['new number']
+    tapvc_type = df['tapvc_type']
     pvo = df['pvo']
     tapvc_dict = {}
     pvo_list = []
@@ -18,8 +19,9 @@ def load_excel(excel_path, do_random=False):
     pvo_number = sum(pvo)
     if not do_random:
         for k in range(length):
-            file_name = str(new_number[k]) + '.npy'
-            tapvc_dict[file_name] = int(pvo[k])
+            if tapvc_type[k] == 0:
+               file_name = str(new_number[k]) + '.npy'
+               tapvc_dict[file_name] = int(pvo[k])
     else:
         random_pvo = np.concatenate((np.ones(pvo_number), np.zeros(length - pvo_number)))
         np.random.shuffle(random_pvo)

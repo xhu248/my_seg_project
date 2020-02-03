@@ -26,7 +26,7 @@ def get_transforms(mode="train", target_size=128):
 
     if mode == "train":
         tranform_list = [# ResizeTransform(target_size=target_size, order=1),
-                         # MirrorTransform(axes=(2,)),
+                         MirrorTransform(axes=(2,)),
                          SpatialTransform(patch_size=target_size, random_crop=False,
                                           patch_center_dist_from_border=target_size[0] // 2,
                                           do_elastic_deform=True, alpha=(0., 1000.), sigma=(40., 60.),
