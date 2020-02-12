@@ -28,6 +28,7 @@ from utilities.file_and_folder_operations import subfiles
 import torch
 import torch.nn.functional as F
 
+
 def reshape_array(numpy_array):
     shape = numpy_array.shape[1]
     slice_img = numpy_array[:, :, :, 0].reshape(1, 2, shape, shape)
@@ -39,10 +40,24 @@ def reshape_array(numpy_array):
     return slice_img
 
 
-def preprocess_data(root_dir):
+def preprocess_data(root_dir, excel_path):
     image_dir = os.path.join(root_dir, 'images')
     # label_dir = os.path.join(root_dir, 'labels')
-    output_dir = os.path.join(root_dir, 'preprocessed')
+    output_dir = os.path.join(root_dir, 'original_npy')
+    nii_files = subfiles(image_dir, suffix=".nii.gz", join=False)
+
+    df = pd.read_excel(excel_path)
+    tapvc_type = df["tapvc_type"]
+    new_number = df["new number"]
+
+    length = len(new_number)
+    supre_list = []
+    for k in range(length):
+        if tapvc_type[k] == 0:
+            supre_patient_number = str(new_number[k])
+            nii_file = supre_patient_number + ".nii.gz"
+            if nii_file in nii_files:
+                supre_list.append(nii_file)
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
@@ -50,24 +65,22 @@ def preprocess_data(root_dir):
         os.makedirs(output_dir)
         print('Created' + output_dir + '...')
 
-    nii_files = subfiles(image_dir, suffix=".nii.gz", join=False)
-
-    for f in nii_files:
+    for f in supre_list:
         file_dir = os.path.join(output_dir, f.split('.')[0]+'.npy')
-        if not os.path.exists(file_dir) and '362' not in f and '387' not in f and '411' not in f:
+        if not os.path.exists(file_dir):
             image, _ = load(os.path.join(image_dir, f))
             # normalize images
             image = (image - image.min()) / (image.max() - image.min())
-            target_shape = (image.shape[0]//2, image.shape[1]//2, image.shape[2]//2)   # reduce x, y , z by 2
+            # target_shape = (image.shape[0]//2, image.shape[1]//2, image.shape[2]//2)   # reduce x, y , z by 2
 
             image_tensor = torch.from_numpy(image[None, None]).to(device)
-            new_image = F.interpolate(image_tensor, size=target_shape, mode='trilinear')
-            new_image = new_image.cpu().numpy().squeeze()
-            print(new_image.shape)
+            # new_image = F.interpolate(image_tensor, size=(128, 128, 128), mode='trilinear')
+            # new_image = new_image.cpu().numpy().squeeze()
+            print(image.shape)
             # image = reshape(image, append_value=0, new_shape=(64, 64, 64))
             # label = reshape(label, append_value=0, new_shape=(64, 64, 64))
 
-            np.save(os.path.join(output_dir, f.split('.')[0] + '.npy'), new_image)
+            np.save(os.path.join(output_dir, f.split('.')[0] + '.npy'), image)
 
     """
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -92,6 +105,7 @@ def preprocess_data(root_dir):
             print(f)
     """
 
+
 def remove_nii_file(root_dir, excel_path):
     image_dir = os.path.join(root_dir, 'images')
     df = pd.read_excel(excel_path)
@@ -115,9 +129,15 @@ def remove_nii_file(root_dir, excel_path):
 
 
 if __name__ == "__main__":
-    root_dir = "/home/xinronghu/tmp/tapvc_project/data/tapvc_dataset"
-    excel_path = '/home/xinronghu/tmp/tapvc_project/data/tapvc_dataset/pvo_classification.xlsx'
+    root_dir = "/home/xinrong/tmp/tapvc_project_3/data/tapvc_dataset"
+    excel_path = '/home/xinrong/tmp/tapvc_project_3/data/tapvc_dataset/pvo_classification.xlsx'
+    processed_path = os.path.join(root_dir, "preprocessed")
 
-    # remove_nii_file(root_dir, excel_path)
-    preprocess_data(root_dir)
+    preprocess_data(root_dir, excel_path)
+
+
+
+
+
+
 
