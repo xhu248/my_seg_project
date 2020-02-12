@@ -52,9 +52,6 @@ class BinaryClassExperiment(PytorchExperiment):
         tr_keys = splits[self.config.fold]['train']
         val_keys = splits[self.config.fold]['val']
         test_keys = splits[self.config.fold]['test']
-        all_keys = splits[self.config.fold]['all']
-
-        val_keys = val_keys + test_keys
 
         self.device = torch.device(self.config.device if torch.cuda.is_available() else 'cpu')    #
 
@@ -63,7 +60,7 @@ class BinaryClassExperiment(PytorchExperiment):
         self.val_data_loader = NumpyDataSet(self.config.data_dir, target_size=(128, 128, 128), batch_size=self.config.batch_size,
                                             keys=val_keys, mode="val", do_reshuffle=True)
         self.test_data_loader = NumpyDataSet(self.config.data_dir, target_size=(128, 128, 128), batch_size=1,
-                                             keys=all_keys, mode="test", do_reshuffle=False)
+                                             keys=test_keys, mode="test", do_reshuffle=False)
         # self.model = ClassificationNN()
         self.model = CombClassNet3D(initial_filter_size=32, num_downs=3, external_features_num=11)
 
@@ -117,7 +114,7 @@ class BinaryClassExperiment(PytorchExperiment):
             fname_list = data_batch['fnames']
 
             for fname in fname_list:
-                file = fname[0].split('preprocessed/')[1]
+                file = fname[0].split('_')[1]
                 assert file in tapvc_dict, 'number of .npy is not in pvo excel'
                 target.append(tapvc_dict[file])
                 external_features.append(self.external_features_dict[file])
@@ -171,7 +168,7 @@ class BinaryClassExperiment(PytorchExperiment):
                 fname_list = data_batch['fnames']
 
                 for fname in fname_list:
-                    file = fname[0].split('preprocessed/')[1]
+                    file = fname[0].split('_')[1]
                     assert file in tapvc_dict, 'number of .npy is not in pvo excel'
                     target.append(tapvc_dict[file])
                     external_features.append(self.external_features_dict[file])
@@ -229,7 +226,7 @@ class BinaryClassExperiment(PytorchExperiment):
                 data = data_batch['data'][0].float().to(self.device) # shape(N, 1, d, d, d)
                 fname_list = data_batch['fnames']  # 8*tuple (a,)
 
-                fname = fname_list[0][0].split('preprocessed/')[1]
+                fname = fname_list[0][0].split('_')[1]
                 assert fname in tapvc_dict, 'number of .npy is not in pvo excel'
                 target = tapvc_dict[fname]
 
