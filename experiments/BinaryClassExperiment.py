@@ -52,9 +52,7 @@ class BinaryClassExperiment(PytorchExperiment):
         tr_keys = splits[self.config.fold]['train']
         val_keys = splits[self.config.fold]['val']
         test_keys = splits[self.config.fold]['test']
-        all_keys = splits[self.config.fold]['all']
-
-        val_keys = val_keys + test_keys
+        # all_keys = splits[self.config.fold]['all']
 
         self.device = torch.device(self.config.device if torch.cuda.is_available() else 'cpu')    #
 
@@ -63,9 +61,9 @@ class BinaryClassExperiment(PytorchExperiment):
         self.val_data_loader = NumpyDataSet(self.config.data_dir, target_size=(128, 128, 128), batch_size=self.config.batch_size,
                                             keys=val_keys, mode="val", do_reshuffle=True)
         self.test_data_loader = NumpyDataSet(self.config.data_dir, target_size=(128, 128, 128), batch_size=1,
-                                             keys=all_keys, mode="test", do_reshuffle=False)
+                                             keys=test_keys, mode="test", do_reshuffle=False)
         # self.model = ClassificationNN()
-        self.model = ClassificationNet3D(initial_filter_size=32, num_downs=3)
+        self.model = ClassificationNet3D(initial_filter_size=16, num_downs=4)
 
         if torch.cuda.device_count() > 1:
             print("Let's use", torch.cuda.device_count(), "GPUs!")
@@ -73,6 +71,8 @@ class BinaryClassExperiment(PytorchExperiment):
             self.model = nn.DataParallel(self.model)
 
         self.model.to(self.device)
+
+        self.beta = self.config.beta
 
         # We use a combination of DICE-loss and CE-Loss in this example.
         # This proved good in the medical segmentation decathlon.
@@ -113,7 +113,7 @@ class BinaryClassExperiment(PytorchExperiment):
             fname_list = data_batch['fnames']
 
             for fname in fname_list:
-                file = fname[0].split('preprocessed/')[1]
+                file = fname[0].split('_')[1]
                 assert file in tapvc_dict, 'number of .npy is not in pvo excel'
                 target.append(tapvc_dict[file])
             target = torch.FloatTensor(target).to(self.device).long()
@@ -122,6 +122,13 @@ class BinaryClassExperiment(PytorchExperiment):
             # pred = self.model(data.squeeze()) # should be of size (N, 2)
 
             loss = self.ce_loss(pred, target.squeeze())
+            l2_loss = torch.tensor([0]).to(self.device)
+            for name, param in self.model.named_parameters():
+                if "fc.weight" in name:
+                    weight = param.data
+                    l2_loss = self.beta*torch.sum(weight * weight).to(self.device)
+
+            loss = loss + l2_loss
             # loss = self.dice_loss(pred_softmax, target.squeeze())
             loss.backward()
             self.optimizer.step()
@@ -161,7 +168,7 @@ class BinaryClassExperiment(PytorchExperiment):
                 fname_list = data_batch['fnames']
 
                 for fname in fname_list:
-                    file = fname[0].split('preprocessed/')[1]
+                    file = fname[0].split('_')[1]
                     assert file in tapvc_dict, 'number of .npy is not in pvo excel'
                     target.append(tapvc_dict[file])
 
@@ -216,7 +223,7 @@ class BinaryClassExperiment(PytorchExperiment):
                 data = data_batch['data'][0].float().to(self.device) # shape(N, 1, d, d, d)
                 fname_list = data_batch['fnames']  # 8*tuple (a,)
 
-                fname = fname_list[0][0].split('preprocessed/')[1]
+                fname = fname_list[0][0].split('_')[1]
                 assert fname in tapvc_dict, 'number of .npy is not in pvo excel'
                 target = tapvc_dict[fname]
 

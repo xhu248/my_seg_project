@@ -62,7 +62,7 @@ class BinaryClassExperiment(PytorchExperiment):
         self.test_data_loader = NumpyDataSet(self.config.data_dir, target_size=(128, 128, 128), batch_size=1,
                                              keys=test_keys, mode="test", do_reshuffle=False)
         # self.model = ClassificationNN()
-        self.model = CombClassNet3D(initial_filter_size=32, num_downs=3, external_features_num=11)
+        self.model = CombClassNet3D(initial_filter_size=32, num_downs=3, external_features_num=8)
 
         if torch.cuda.device_count() > 1:
             print("Let's use", torch.cuda.device_count(), "GPUs!")
@@ -70,6 +70,8 @@ class BinaryClassExperiment(PytorchExperiment):
             self.model = nn.DataParallel(self.model)
 
         self.model.to(self.device)
+
+        self.beta = self.config.beta
 
         with open(self.config.external_features_path, 'rb') as f:
             self.external_features_dict = pickle.load(f)
@@ -128,7 +130,15 @@ class BinaryClassExperiment(PytorchExperiment):
             # pred = self.model(data.squeeze()) # should be of size (N, 2)
 
             loss = self.ce_loss(pred, target.squeeze())
-            # loss = self.dice_loss(pred_softmax, target.squeeze())
+
+            l2_loss = torch.tensor([0]).to(self.device)
+            for name, param in self.model.named_parameters():
+                if "fc.weight" in name:
+                    weight = param.data
+                    l2_loss = self.beta * torch.sum(weight * weight).to(self.device)
+
+            loss = loss + l2_loss
+
             loss.backward()
             self.optimizer.step()
 

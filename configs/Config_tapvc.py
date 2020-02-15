@@ -39,6 +39,7 @@ def get_config():
         device="cuda",  # 'cuda' is the default CUDA device, you can use also 'cpu'. For more information, see https://pytorch.org/docs/stable/notes/cuda.html
 
         # Logging parameters
+        beta = 2,
         name='Basic_Unet',
         plot_freq=10,  # How often should stuff be shown in visdom
         append_rnd_string=False,
