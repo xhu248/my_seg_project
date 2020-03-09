@@ -14,7 +14,7 @@ from trixi.experiment.pytorchexperiment import PytorchExperiment
 
 from networks.ClassificationNN import ClassificationNN
 from networks.ClassificationNN import CombClassNet3D
-from networks.ClassificationRes import ClassificationVnet
+from networks.ClassificationRes import CombClassRes3D
 
 from loss_functions.dice_loss import SoftDiceLoss
 
@@ -62,7 +62,7 @@ class BinaryClassExperiment(PytorchExperiment):
         self.test_data_loader = NumpyDataSet(self.config.data_dir, target_size=(128, 128, 128), batch_size=1,
                                              keys=test_keys, mode="test", do_reshuffle=False)
         # self.model = ClassificationNN()
-        self.model = CombClassNet3D(initial_filter_size=32, num_downs=3, external_features_num=8)
+        self.model = CombClassRes3D(initial_filter_size=self.config.initial_filter_size, num_downs=self.config.num_downs, external_features_num=8)
 
         if torch.cuda.device_count() > 1:
             print("Let's use", torch.cuda.device_count(), "GPUs!")
@@ -80,7 +80,7 @@ class BinaryClassExperiment(PytorchExperiment):
         # This proved good in the medical segmentation decathlon.
         self.dice_loss = SoftDiceLoss(batch_dice=True)  # Softmax für DICE Loss!
 
-        weight = torch.FloatTensor([1, 25]).to(self.device)
+        weight = torch.FloatTensor(self.config.weight).to(self.device)
         self.ce_loss = torch.nn.CrossEntropyLoss(weight=weight)  # Kein Softmax für CE Loss -> ist in torch schon mit drin!
         # self.dice_pytorch = dice_pytorch(self.config.num_classes)
 
@@ -131,11 +131,11 @@ class BinaryClassExperiment(PytorchExperiment):
 
             loss = self.ce_loss(pred, target.squeeze())
 
-            l2_loss = torch.tensor([0]).to(self.device)
+            l2_loss = torch.tensor([0]).to(self.device).float()
             for name, param in self.model.named_parameters():
                 if "fc.weight" in name:
                     weight = param.data
-                    l2_loss = self.beta * torch.sum(weight * weight).to(self.device)
+                    l2_loss += self.beta * torch.sum(weight * weight).to(self.device)
 
             loss = loss + l2_loss
 
@@ -198,7 +198,14 @@ class BinaryClassExperiment(PytorchExperiment):
                 correct_pvo += sum(c)
                 num_pvo += sum(target)
 
+                l2_loss = torch.tensor([0]).to(self.device).float()
+                for name, param in self.model.named_parameters():
+                    if "fc.weight" in name:
+                        weight = param.data
+                        l2_loss = self.beta * torch.sum(weight * weight).to(self.device)
+
                 loss = self.ce_loss(pred, target.squeeze())
+                loss = loss + l2_loss
                 loss_list.append(loss.item())
 
         wrong_pvo_num = total_num - correct_pvo
@@ -231,6 +238,11 @@ class BinaryClassExperiment(PytorchExperiment):
         y_test = []
         y_prob = []
 
+        for name, param in self.model.named_parameters():
+            if "fc.weight" in name:
+                weights = param.data.cpu().numpy()
+                print(weights)
+
         with torch.no_grad():
             for data_batch in self.test_data_loader:
                 data = data_batch['data'][0].float().to(self.device) # shape(N, 1, d, d, d)
@@ -241,7 +253,7 @@ class BinaryClassExperiment(PytorchExperiment):
                 target = tapvc_dict[fname]
 
                 external_features = self.external_features_dict[fname]
-                external_features = torch.FloatTensor(external_features).to(self.device).float()
+                external_features = torch.FloatTensor(external_features[None]).to(self.device).float()
 
                 x = (data, external_features)
                 features, pred = self.model(x)
@@ -256,7 +268,7 @@ class BinaryClassExperiment(PytorchExperiment):
                 y_prob.append(pred_softmax[0][1].cpu().numpy())
 
                 if pred_pvo == 1 and target == 1:
-                        correct_list.append(fname)
+                        correct_list.append(fname_list[0][0])
 
                 # store features
                 new_num = fname.split('.')[0]
@@ -274,8 +286,10 @@ class BinaryClassExperiment(PytorchExperiment):
         y_predict = np.array(y_predict)
         y_test = np.array(y_test)
         y_prob = np.array(y_prob)
-        print_metrices_out(y_predict, y_test, y_prob)
+        confusion_matrix = print_metrices_out(y_predict, y_test, y_prob)
         print(correct_list)
+
+        self.add_result(value=str(confusion_matrix), name='confusion_matrix', counter=self.config.n_epochs)
 
         assert data is not None, 'data is None. Please check if your dataloader works properly'
 

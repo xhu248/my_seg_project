@@ -23,8 +23,8 @@ from configs.Config_tapvc import get_config
 from datasets.tapvc_dataset.preprocessing import preprocess_data
 from datasets.tapvc_dataset.create_splits_2 import create_splits
 from experiments.FCNExperiment import FCNExperiment
-from experiments.BinaryClassExperiment import BinaryClassExperiment
-# from experiments.CombClassExperiment import BinaryClassExperiment
+# from experiments.BinaryClassExperiment import BinaryClassExperiment
+from experiments.CombClassExperiment import BinaryClassExperiment
 
 
 import datetime
@@ -39,7 +39,6 @@ def training():
 
     dataset_name = 'tapvc_dataset'
 
-
     if not exists(os.path.join(os.path.join(c.data_root_dir, dataset_name), 'preprocessed')):
         print('Preprocessing data. [STARTED]')
         preprocess_data(root_dir=os.path.join(c.data_root_dir, dataset_name))
@@ -51,11 +50,17 @@ def training():
     # preprocess_data(root_dir=os.path.join(c.data_root_dir, dataset_name))
     # create_splits(excel_path=c.excel_dir, output_dir=c.split_dir, image_dir=c.data_dir, do_balancement=True)
 
-    exp = BinaryClassExperiment(config=c, name='tapvc_experiment', n_epochs=c.n_epochs,
-                        seed=42, append_rnd_to_name=c.append_rnd_string)   # visdomlogger_kwargs={"auto_start": c.start_visdom}
+    for i in range(2):
+        for k in range(4):
+            print("===========Experiment with fold", k, "==============")
+            c.fold = k
+            experiment_name = "tapvc_combined_" + str(k) + "_experiment"
+            exp = BinaryClassExperiment(config=c, name=experiment_name, n_epochs=c.n_epochs,
+                                        seed=42,
+                                        append_rnd_to_name=c.append_rnd_string)  # visdomlogger_kwargs={"auto_start": c.start_visdom}
 
-    exp.run()
-    exp.run_test(setup=False)
+            exp.run()
+            exp.run_test(setup=False)
 
 def testing():
 
@@ -64,7 +69,8 @@ def testing():
     # create_splits(excel_path=c.excel_dir, output_dir=c.split_dir, image_dir=c.data_dir, do_balancement=True)
 
     c.do_load_checkpoint = True
-    c.checkpoint_dir = c.base_dir + '/20200113-102201_tapvc_experiment' + '/checkpoint/checkpoint_current'
+    c.fold = 3
+    c.checkpoint_dir = c.base_dir + '/20200228-110738_tapvc_combined_0_experiment' + '/checkpoint/checkpoint_current'
 
     exp = BinaryClassExperiment(config=c, name='tapvc_test', n_epochs=c.n_epochs,
                                seed=42, globs=globals())

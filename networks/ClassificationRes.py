@@ -86,3 +86,44 @@ class ClassificationVnet(nn.Module):
 
         x = self.fc(x)
         return x
+
+
+class CombClassRes3D(nn.Module):
+    def __init__(self, num_classes=2, in_channels=1, initial_filter_size=64, kernel_size=3, num_downs=3, norm_layer=nn.InstanceNorm3d, external_features_num=8):
+        super(CombClassRes3D, self).__init__()
+
+        self.num_classes = num_classes
+
+        block = DownsamplingResBlock(in_channels=initial_filter_size * 2 ** (num_downs-1), out_channels=initial_filter_size * 2 ** num_downs,
+                                     kernel_size=kernel_size, norm_layer=norm_layer)
+
+        for i in range(1, num_downs):
+            block = DownsamplingResBlock(in_channels=initial_filter_size * 2 ** (num_downs-(i+1)),
+                                         out_channels=initial_filter_size * 2 ** (num_downs-i),
+                                         kernel_size=kernel_size, submodule=block, norm_layer=norm_layer)
+
+        block = DownsamplingResBlock(in_channels=in_channels, out_channels=initial_filter_size,
+                                     kernel_size=kernel_size, submodule=block, norm_layer=norm_layer)
+
+        self.model = block
+        self.fc = nn.Linear(initial_filter_size * 2 ** (num_downs+1)+external_features_num, num_classes)
+
+    @staticmethod
+    def pooling(layer, kernel_size=None):
+        global_max = nn.MaxPool3d(kernel_size=kernel_size)
+        global_avg = nn.AvgPool3d(kernel_size=kernel_size)
+        layer = torch.cat([global_avg(layer), global_max(layer)], 1)
+        layer = torch.flatten(layer, 1)
+        return layer
+
+    def forward(self, x):
+        x1 = x[0]
+        x2 = x[1]
+        x = self.model(x1)
+        x = self.pooling(x, kernel_size=x.size()[2])
+
+        x = torch.cat([x, x2], 1)
+        y = self.fc(x)
+
+        return x, y
+

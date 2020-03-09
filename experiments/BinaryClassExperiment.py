@@ -63,7 +63,7 @@ class BinaryClassExperiment(PytorchExperiment):
         self.test_data_loader = NumpyDataSet(self.config.data_dir, target_size=(128, 128, 128), batch_size=1,
                                              keys=test_keys, mode="test", do_reshuffle=False)
         # self.model = ClassificationNN()
-        self.model = ClassificationNet3D(initial_filter_size=16, num_downs=4)
+        self.model = ClassificationNet3D(initial_filter_size=32, num_downs=3)
 
         if torch.cuda.device_count() > 1:
             print("Let's use", torch.cuda.device_count(), "GPUs!")
@@ -78,7 +78,7 @@ class BinaryClassExperiment(PytorchExperiment):
         # This proved good in the medical segmentation decathlon.
         self.dice_loss = SoftDiceLoss(batch_dice=True)  # Softmax für DICE Loss!
 
-        weight = torch.FloatTensor([1, 15]).to(self.device)
+        weight = torch.FloatTensor([1, 25]).to(self.device)
         self.ce_loss = torch.nn.CrossEntropyLoss(weight=weight)  # Kein Softmax für CE Loss -> ist in torch schon mit drin!
         # self.dice_pytorch = dice_pytorch(self.config.num_classes)
 
@@ -239,7 +239,7 @@ class BinaryClassExperiment(PytorchExperiment):
                 y_prob.append(pred_softmax[0][1].cpu().numpy())
 
                 if pred_pvo == 1 and target == 1:
-                        correct_list.append(fname)
+                        correct_list.append(fname_list[0][0])
 
                 # store features
                 new_num = fname.split('.')[0]

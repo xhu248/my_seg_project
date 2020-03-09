@@ -90,7 +90,8 @@ class ClassificationNet3D(nn.Module):
     def pooling(layer, in_channels=None, kernel_size=None):
         global_max = nn.MaxPool3d(kernel_size=kernel_size)
         global_avg = nn.AvgPool3d(kernel_size=kernel_size)
-        layer = torch.cat([global_avg(layer), global_max(layer)], 1)
+        # layer = torch.cat([global_avg(layer), global_max(layer)], 1)
+        layer = global_max(layer)
         layer = torch.flatten(layer, 1)
         return layer
 

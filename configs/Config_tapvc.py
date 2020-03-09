@@ -32,14 +32,17 @@ def get_config():
         in_channels=1,
         batch_size=4,
         patch_size=64,
-        n_epochs=50,
+        n_epochs=40,
         learning_rate=0.0005,
-        fold=1,  # The 'splits.pkl' may contain multiple folds. Here we choose which one we want to use.
+        fold=3,  # The 'splits.pkl' may contain multiple folds. Here we choose which one we want to use.
 
         device="cuda",  # 'cuda' is the default CUDA device, you can use also 'cpu'. For more information, see https://pytorch.org/docs/stable/notes/cuda.html
 
         # Logging parameters
-        beta = 2,
+        beta=2,
+        initial_filter_size=16,
+        num_downs=5,
+        weight=[1, 25],
         name='Basic_Unet',
         plot_freq=10,  # How often should stuff be shown in visdom
         append_rnd_string=False,
