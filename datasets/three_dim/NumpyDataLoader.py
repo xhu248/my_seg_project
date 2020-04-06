@@ -34,8 +34,8 @@ def load_dataset(base_dir, pattern='*.npy', keys=None):
     for root, dirs, files in os.walk(base_dir):
         i = 0
         for filename in sorted(fnmatch.filter(files, pattern)):
-
-            if keys is not None and filename[:-4] in keys:
+            # this assures that only images of patients in excel are loaded
+            if keys is not None and filename in keys:
                 npy_file = os.path.join(root, filename)
                 numpy_array = np.load(npy_file, mmap_mode="r+")
 
@@ -54,7 +54,7 @@ class NumpyDataSet(object):
     TODO
     """
     def __init__(self, base_dir, mode="train", batch_size=16, num_batches=10000000, seed=None, num_processes=8, num_cached_per_queue=8 * 4, target_size=128,
-                 file_pattern='*.npy', label=1, input=(0,), do_reshuffle=True, keys=None):
+                 file_pattern='*.npy', label=None, input=(0,), do_reshuffle=True, keys=None):
 
         data_loader = NumpyDataLoader(base_dir=base_dir, mode=mode, batch_size=batch_size, num_batches=num_batches, seed=seed, file_pattern=file_pattern,
                                       input=input, label=label, keys=keys)
@@ -85,7 +85,7 @@ class NumpyDataSet(object):
 
 class NumpyDataLoader(SlimDataLoaderBase):
     def __init__(self, base_dir, mode="train", batch_size=16, num_batches=10000000,
-                 seed=None, file_pattern='*.npy', label=1, input=(0,), keys=None):
+                 seed=None, file_pattern='*.npy', label=None, input=(0,), keys=None):
 
         self.files, self.file_len, self.dataset = load_dataset(base_dir=base_dir, pattern=file_pattern, keys=keys, )
         super(NumpyDataLoader, self).__init__(self.dataset, batch_size, num_batches)
@@ -158,13 +158,15 @@ class NumpyDataLoader(SlimDataLoaderBase):
 
             numpy_array = np.load(fn_name, mmap_mode="r")
 
-            data.append(numpy_array[None, self.input[0]])   # 'None' keeps the dimension
+            data.append(numpy_array[None])
 
             if self.label is not None:
                 labels.append(numpy_array[None, self.label[0]])   # 'None' keeps the dimension
 
             fnames.append(self.files[idx])
             idxs.append(idx)
+
+        data = np.array(data)
 
         ret_dict = {'data': data, 'fnames': fnames, 'idxs': idxs}
         if self.label is not None:

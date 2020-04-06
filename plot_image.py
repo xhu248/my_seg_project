@@ -5,51 +5,14 @@ import os
 import numpy as np
 import torch
 import torch.nn.functional as F
-from configs.Config_chd import get_config
+from configs.Config_tapvc import get_config
 from utilities.file_and_folder_operations import subfiles
-
-def reshape_array(numpy_array, axis=1):
-    image_shape = numpy_array.shape[1]
-    channel = numpy_array.shape[0]
-    if axis == 1:
-        slice_img = numpy_array[:, 0, :, :].reshape(1, channel, image_shape, image_shape)
-        slice_len = np.shape(numpy_array)[1]
-        for k in range(1, slice_len):
-            slice_array = numpy_array[:, k, :, :].reshape(1, channel, image_shape, image_shape)
-            slice_img = np.concatenate((slice_img, slice_array))
-        return slice_img
-    elif axis == 2:
-        slice_img = numpy_array[:, :, 0, :].reshape(1, channel, image_shape, image_shape)
-        slice_len = np.shape(numpy_array)[2]
-        for k in range(1, slice_len):
-            slice_array = numpy_array[:, :, k, :].reshape(1, channel, image_shape, image_shape)
-            slice_img = np.concatenate((slice_img, slice_array))
-        return slice_img
-    elif axis == 3:
-        slice_img = numpy_array[:, :, :, 0].reshape(1, channel, image_shape, image_shape)
-        slice_len = np.shape(numpy_array)[3]
-        for k in range(1, slice_len):
-            slice_array = numpy_array[:, :, :, k].reshape(1, channel, image_shape, image_shape)
-            slice_img = np.concatenate((slice_img, slice_array))
-        return slice_img
 
 if __name__ == '__main__':
     c = get_config()
-    """ 
-    data_dir = c.data_dir
-    image_num = '1016'
-    scaled_image_dir = os.path.join(c.data_dir, 'scaled_to_16')
-    scaled_image = os.path.join(c.data_dir, 'ct_1083_image.npy')
 
-    train_image = np.load(scaled_image)
-    label_image = np.load(scaled_image)[:, 1]
-
-    max_value = label_image.max()
-    plt.imshow(train_image[12], cmap='gray')
-    plt.show()
-    plt.imshow(val_image[12], cmap='gray')
-    plt.show()
-    
+    base_dir =os.path.join(c.data_root_dir, 'CHD_segmentation_dataset')
+    original_image = os.path.join(base_dir, "preprocessed/")
     pred_dir = os.path.join(c.base_dir, c.dataset_name
                                              + '_' + str(
         c.batch_size) + c.cross_vali_result_all_dir + '_20190425-213808')
@@ -78,42 +41,52 @@ if __name__ == '__main__':
 
     plt.savefig(os.path.join(pred_dir, 'images') + '/_006_25.jpg')
     plt.show()
-    """
-    n = 4
-    k = 115
-    scaled_16_files = subfiles(c.scaled_image_16_dir, suffix='.npy', join=False)
-    pred_32_files = subfiles(c.stage_1_dir_32, suffix='64.npy', join=False)
-    org_files = subfiles(c.data_dir, suffix='.npy', join=False)
+
+"""
+    n = 0
+    k = 10
+    chd_files = subfiles(os.path.join(c.data_root_dir, 'CHD_segmentation_dataset/preprocessed'),
+                         suffix='.npy', join=True)
+    org_files = subfiles(os.path.join(c.data_root_dir, 'tapvc_dataset/preprocessed'),
+                         suffix='.npy', join=True)
+    seg_files = subfiles(c.seg_dir, suffix='.npy', join=True)
 
     ############ original image and target ########################
-    file = org_files[2]
-    data = np.load(os.path.join(c.data_dir, file))
-    data = reshape_array(data, axis=3)
+    file = org_files[n]
+    seg_file = seg_files[n]
+    chd_file = chd_files[n]
+    data = np.load(file)
+    seg_data = np.load(seg_file)
+    chd_data = np.load(chd_file)
+    print(data.max())
+    print(chd_data.max())
+    print(seg_data.max())
+    image = data[:, :, k]
+    seg_image = seg_data[:, :, k]
+    chd_image = chd_data[k, 0]
+    chd_label = chd_data[k, 1]
 
-    image = data[:, 0]
-    target = data[:, 1]
 
     ############ down scale using interpolation ########################
-    data = torch.tensor(data)
-    data_256 = F.interpolate(data, scale_factor=1/16, mode='bilinear')
-    image_256 = data_256[:, 0]
-    target_256 = data_256[:, 1]
     
     plt.figure(1)
     plt.subplot(2, 2, 1)
     plt.title('image:%d,  slice:%d, original image' % (n, k))
-    plt.imshow(image[k], cmap='gray')
+    plt.imshow(image, cmap='gray')
     plt.subplot(2, 2, 2)
-    plt.title('image:%d,  slice:%d, original target' % (n, k))
-    plt.imshow(target[k], cmap='gray')
+    plt.title('image:%d,  slice:%d, after segmentation' % (n, k))
+    plt.imshow(seg_image, cmap='gray')
     plt.subplot(2, 2, 3)
-    plt.title('image:%d,  slice:%d, image scale by 0.5' % (n, k))
-    plt.imshow(image_256[k], cmap='gray')
+    plt.title('image:%d,  slice:%d, chd image' % (n, k))
+    plt.imshow(chd_image, cmap='gray')
     plt.subplot(2, 2, 4)
-    plt.title('image:%d,  slice:%d, target scale by 0.5' % (n, k))
-    plt.imshow(target_256[k], cmap='gray')
+    plt.title('image:%d,  slice:%d, chd label' % (n, k))
+    plt.imshow(chd_label, cmap='gray')
     plt.show()
+    
+"""
 
+"""
     ############ down scale using max-pooling ########################
     file_64 = pred_32_files[n]
     pred_64 = np.load(os.path.join(c.stage_1_dir_32, file_64))[:, 0:8]
@@ -153,4 +126,5 @@ if __name__ == '__main__':
     plt.imshow(target_32[k], cmap='gray')
     plt.show()
 
+"""
 
